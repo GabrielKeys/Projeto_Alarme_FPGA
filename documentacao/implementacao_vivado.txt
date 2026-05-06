@@ -1,0 +1,9 @@
+IMPLEMENTAÇÃO NO VIVADO
+
+Foi realizada a etapa de implementação do projeto no Vivado após a síntese do módulo alarme_top.
+
+A implementação foi concluída com sucesso, indicando que o projeto sintetizado pôde ser mapeado, posicionado e roteado para a FPGA selecionada.
+
+Essa etapa valida que a central de alarme descrita em VHDL pode ser preparada para gravação em hardware, respeitando o fluxo de desenvolvimento em FPGA.
+
+Após a implementação, o Vivado abriu a visualização do design implementado, confirmando que o projeto avançou corretamente para a etapa de geração do bitstream.

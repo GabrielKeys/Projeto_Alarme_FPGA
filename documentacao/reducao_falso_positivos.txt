@@ -1,0 +1,24 @@
+REDUÇÃO DE FALSO-POSITIVOS
+
+Objetivo:
+Reduzir disparos indevidos do sistema de alarme causados por ruídos, leituras momentâneas dos sensores ou acionamentos acidentais.
+
+Estratégias previstas:
+
+1. Filtro temporal
+A central não deve disparar imediatamente após uma única leitura. A violação precisa permanecer ativa por um pequeno intervalo de tempo antes de ser considerada válida.
+
+2. Confirmação por contagem
+Na versão inicial do VHDL, o sistema entra no estado CONTAGEM antes do DISPARO. Esse comportamento já funciona como uma primeira forma de filtragem, pois evita disparos instantâneos.
+
+3. Memorização da zona violada
+Quando uma zona é violada, a FPGA armazena essa informação em zona_memoria. Isso evita perda ou alteração do evento durante a contagem e o disparo.
+
+4. Análise futura por software
+Em etapas futuras, o ESP32 ou a nuvem poderão registrar horários, zonas mais acionadas e frequência de eventos. Esses dados poderão ser usados para análise estatística e melhoria da lógica de decisão.
+
+5. Possível uso de IA
+Como extensão do projeto, poderá ser aplicada uma lógica simples de classificação dos eventos com base no histórico de disparos, horário, zona acionada e repetição do evento. Essa análise poderá ajudar a diferenciar uma violação real de um falso-positivo.
+
+Aplicação no projeto atual:
+Nesta etapa, a redução de falso-positivos é implementada principalmente pela MEF, por meio do estado CONTAGEM, e pela memorização da zona violada.

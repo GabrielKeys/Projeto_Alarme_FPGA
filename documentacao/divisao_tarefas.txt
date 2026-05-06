@@ -1,0 +1,50 @@
+DIVISÃO DE TAREFAS DO GRUPO
+
+O projeto foi dividido em frentes de trabalho para facilitar o desenvolvimento, os testes e a integração final.
+
+1. FPGA / VHDL
+
+Responsabilidades:
+- Implementar a Máquina de Estados Finita da central de alarme
+- Monitorar as cinco zonas
+- Controlar sirene, estrobo, LEDs e display
+- Enviar sinais ao ESP32
+- Validar o projeto por simulação no Vivado
+- Realizar síntese, implementação e geração do bitstream
+
+2. ESP32 / IoT
+
+Responsabilidades:
+- Ler os sinais enviados pela FPGA
+- Identificar a zona violada
+- Enviar os dados por MQTT
+- Retornar confirmação para a FPGA por meio do sinal esp_ok
+- Preparar a comunicação com a nuvem/dashboard
+
+3. Nuvem / Dashboard
+
+Responsabilidades:
+- Criar o dashboard do sistema
+- Exibir status do alarme
+- Exibir zona violada
+- Exibir mensagem de alerta
+- Registrar histórico de eventos
+- Planejar integrações com e-mail, WhatsApp ou Telegram
+
+4. Protótipo físico
+
+Responsabilidades:
+- Planejar a maquete
+- Organizar sensores e atuadores
+- Organizar a fiação
+- Garantir que a Basys 3 possa ser conectada e removida com segurança
+- Preparar a demonstração final
+
+5. Documentação e apresentação
+
+Responsabilidades:
+- Manter o GitHub atualizado
+- Registrar simulações e testes
+- Criar documentação técnica
+- Preparar vídeo demonstrativo
+- Preparar apresentação final

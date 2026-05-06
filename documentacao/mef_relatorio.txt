@@ -1,0 +1,48 @@
+MÁQUINA DE ESTADOS FINITA DA CENTRAL DE ALARME
+
+A central do sistema de alarme foi projetada utilizando uma Máquina de Estados Finita (MEF), implementada em VHDL na FPGA Basys 3. A escolha dessa abordagem permite organizar o funcionamento do sistema em estados bem definidos, facilitando o controle, a simulação e a validação da lógica embarcada.
+
+A MEF possui cinco estados principais:
+
+1. DESARMADO
+Neste estado, o sistema permanece inativo. As zonas não geram disparo do alarme e o display de sete segmentos indica a letra “d”, representando o sistema desarmado.
+
+2. ARMADO
+Neste estado, o sistema está ativo e passa a monitorar as cinco zonas. Caso nenhuma violação seja detectada, o sistema permanece nesse estado. O display indica a letra “A”, representando o sistema armado.
+
+3. CONTAGEM
+Quando uma das zonas é violada, a MEF entra no estado CONTAGEM. Nesse estado, o sistema aguarda um tempo programado antes de acionar o disparo. No protótipo inicial, essa contagem foi configurada para 10 ciclos de clock na simulação.
+
+4. DISPARO
+Após o término da contagem, o sistema entra no estado DISPARO. Nesse estado, são ativadas as saídas da sirene, luz estroboscópica e sinal de alerta para o ESP32. Os LEDs indicam qual zona foi violada e o display mostra a letra “U”.
+
+5. RESET_ESP
+Caso o ESP32 não confirme o envio do alerta, a MEF entra no estado RESET_ESP. Nesse estado, a FPGA aciona um sinal de reset para o ESP32, funcionando como uma estratégia de watchdog para aumentar a confiabilidade da comunicação.
+
+As principais transições da MEF são:
+
+DESARMADO → ARMADO:
+ocorre quando o botão de ativação do sistema é acionado.
+
+ARMADO → DESARMADO:
+ocorre quando o botão de ativação é desacionado.
+
+ARMADO → CONTAGEM:
+ocorre quando qualquer zona monitorada é violada.
+
+CONTAGEM → DISPARO:
+ocorre quando a contagem atinge o tempo configurado.
+
+CONTAGEM → ARMADO:
+ocorre se a zona violada voltar ao estado normal antes do término da contagem.
+
+DISPARO → DESARMADO:
+ocorre quando o sistema é desarmado manualmente.
+
+DISPARO → RESET_ESP:
+ocorre quando o ESP32 não retorna confirmação de envio do alerta.
+
+RESET_ESP → ARMADO:
+ocorre após o reset do ESP32.
+
+A simulação comportamental no Vivado validou a sequência principal da MEF, demonstrando que a central alterna corretamente entre os estados DESARMADO, ARMADO, CONTAGEM e DISPARO, além de acionar as saídas esperadas.

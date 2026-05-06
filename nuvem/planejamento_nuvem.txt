@@ -1,0 +1,40 @@
+PLANEJAMENTO DA NUVEM E DASHBOARD
+
+Plataforma escolhida:
+Blynk IoT
+
+Justificativa:
+O Blynk IoT foi escolhido por ser uma plataforma simples para integração com ESP32, possuir dashboard web/mobile, permitir visualização de variáveis do sistema e facilitar a demonstração do protótipo. Essa escolha reduz a complexidade em relação a soluções maiores, como Azure IoT, mantendo uma apresentação funcional e adequada ao projeto.
+
+Comunicação:
+A comunicação entre ESP32 e nuvem será feita usando MQTT ou integração compatível com a plataforma IoT escolhida.
+
+Dados enviados para a nuvem:
+- Status do alarme
+- Zona violada
+- Estado da central
+- Quantidade de disparos
+- Horário do evento
+
+Dashboard:
+O dashboard deverá exibir:
+- Status do sistema: armado, desarmado ou disparando
+- Zona violada
+- Histórico dos disparos
+- Contador de eventos
+- Estado da comunicação com ESP32
+
+Alertas ao usuário:
+O sistema deverá informar exatamente qual zona foi violada.
+
+Exemplos de mensagens:
+ALERTA: Zona 1 violada - Porta principal
+ALERTA: Zona 2 violada - Janela lateral
+ALERTA: Zona 3 violada - Área interna
+ALERTA: Zona 4 violada - Área externa
+ALERTA: Zona 5 violada - Área crítica
+
+Formas de comunicação previstas:
+- Notificação pelo dashboard/app
+- E-mail via integração
+- WhatsApp ou Telegram via integração externa, se disponível

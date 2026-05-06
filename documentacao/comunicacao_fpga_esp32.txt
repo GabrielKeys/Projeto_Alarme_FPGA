@@ -1,0 +1,44 @@
+COMUNICAÇÃO FPGA → ESP32
+
+A comunicação entre a FPGA Basys 3 e o ESP32 será feita inicialmente por sinais digitais simples, permitindo que a central embarcada informe ao módulo IoT quando ocorreu um disparo e qual zona foi violada.
+
+Sinais utilizados:
+
+1. esp_alerta
+Sinal enviado pela FPGA ao ESP32 para indicar que o alarme entrou no estado de DISPARO.
+
+2. esp_zonas[4:0]
+Vetor de 5 bits enviado pela FPGA ao ESP32 para indicar qual zona foi violada.
+
+Representação das zonas:
+
+00001 = Zona 1 violada
+00010 = Zona 2 violada
+00100 = Zona 3 violada
+01000 = Zona 4 violada
+10000 = Zona 5 violada
+
+3. esp_ok
+Sinal enviado pelo ESP32 para a FPGA confirmando que o alerta foi enviado corretamente para a nuvem.
+
+4. esp_reset
+Sinal enviado pela FPGA ao ESP32 caso a confirmação esp_ok não seja recebida, funcionando como estratégia de watchdog.
+
+Fluxo de comunicação:
+
+1. Uma zona é violada.
+2. A FPGA identifica a zona.
+3. Após a contagem, a FPGA entra no estado DISPARO.
+4. A FPGA ativa esp_alerta.
+5. A FPGA envia a zona violada pelo vetor esp_zonas.
+6. O ESP32 recebe os sinais.
+7. O ESP32 envia o alerta via MQTT para a nuvem/dashboard.
+8. O ESP32 retorna esp_ok para confirmar o envio.
+9. Caso não haja confirmação, a FPGA ativa esp_reset.
+
+Exemplo de alerta futuro:
+
+ALERTA: Zona 3 violada
+Status: Alarme disparado
+Origem: FPGA Basys 3
+Envio: ESP32 via MQTT

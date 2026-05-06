@@ -1,0 +1,21 @@
+TESTE DE SIMULAÇÃO NO VIVADO
+
+Foi realizada a simulação comportamental do módulo alarme_top utilizando o testbench tb_alarme_top.
+
+A simulação validou a sequência principal da MEF:
+DESARMADO → ARMADO → CONTAGEM → DISPARO → DESARMADO.
+
+Durante o teste, a Zona 3 foi violada, gerando o valor 04 no vetor de zonas. O sinal zona_violada foi ativado e o contador realizou a contagem até 10 ciclos antes do disparo do alarme.
+
+Após a contagem, o sistema entrou no estado DISPARO, indicando que a lógica de detecção e acionamento da central funcionou corretamente em simulação.
+
+Conclusão:
+A MEF principal do alarme foi validada com sucesso no Vivado, demonstrando o funcionamento esperado da central FPGA antes dos testes físicos na placa.
+
+ATUALIZAÇÃO DA SIMULAÇÃO - SINAL ESP_ZONAS
+
+Após a melhoria da comunicação entre FPGA e ESP32, foi adicionado o sinal esp_zonas, responsável por enviar ao ESP32 o vetor correspondente à zona violada.
+
+Na nova simulação, foi possível verificar que, durante o disparo do alarme, o sinal esp_zonas assumiu o valor 04, correspondente à violação da Zona 3. Antes e após o disparo, o valor retornou para 00.
+
+Esse comportamento confirma que a FPGA não apenas envia um alerta genérico ao ESP32, mas também informa qual zona foi violada, atendendo ao requisito de comunicação detalhada ao usuário.

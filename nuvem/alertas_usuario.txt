@@ -1,0 +1,48 @@
+PLANEJAMENTO DOS ALERTAS AO USUÁRIO
+
+Objetivo:
+Definir como o sistema comunicará ao usuário que uma zona do alarme foi violada.
+
+Requisito principal:
+A comunicação ao usuário deve informar explicitamente qual zona foi violada.
+
+Mensagem padrão:
+ALERTA: Zona X violada - Local correspondente
+
+Mensagens previstas:
+ALERTA: Zona 1 violada - Porta principal
+ALERTA: Zona 2 violada - Janela lateral
+ALERTA: Zona 3 violada - Area interna
+ALERTA: Zona 4 violada - Area externa
+ALERTA: Zona 5 violada - Area critica
+
+Formas de comunicação previstas:
+
+1. Dashboard / aplicativo
+O usuário visualizará o status do sistema, a zona violada e a mensagem do alerta no dashboard.
+
+2. MQTT
+O ESP32 publicará as informações em tópicos MQTT, permitindo que uma plataforma externa leia os eventos.
+
+3. E-mail
+Poderá ser configurado por meio de integração externa, como IFTTT, para enviar uma mensagem automática ao usuário.
+
+4. WhatsApp ou Telegram
+Poderá ser utilizado via integração externa, caso disponível, para envio rápido da notificação ao usuário.
+
+Dados enviados no alerta:
+- Status do alarme
+- Número da zona violada
+- Local da zona violada
+- Mensagem completa
+- Confirmação do ESP32
+
+Exemplo:
+Status: disparo
+Zona: 3
+Local: Area interna
+Mensagem: ALERTA: Zona 3 violada - Area interna
+ESP32: ok
+
+Observação:
+A implementação inicial será feita por dashboard e MQTT. As integrações com e-mail, WhatsApp ou Telegram serão tratadas como extensões do sistema.

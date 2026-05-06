@@ -1,0 +1,37 @@
+PLANEJAMENTO DO ESP32
+
+Função do ESP32:
+O ESP32 será responsável pela comunicação IoT do sistema. Ele receberá sinais digitais da FPGA indicando que houve disparo do alarme e qual zona foi violada. Depois disso, enviará essas informações para a nuvem/dashboard utilizando comunicação MQTT ou integração compatível com a plataforma escolhida.
+
+Entradas vindas da FPGA:
+- esp_alerta: indica que o alarme disparou
+- esp_zonas[4:0]: indica qual zona foi violada
+- esp_reset: reinicialização enviada pela FPGA em caso de falha
+
+Saída para a FPGA:
+- esp_ok: confirmação de que o alerta foi enviado corretamente
+
+Funcionamento previsto:
+1. ESP32 fica aguardando esp_alerta.
+2. Quando esp_alerta = 1, lê o vetor esp_zonas.
+3. Identifica qual zona foi violada.
+4. Monta uma mensagem de alerta.
+5. Envia os dados para a nuvem/dashboard.
+6. Retorna esp_ok = 1 para a FPGA.
+7. Caso receba esp_reset, reinicia a comunicação.
+
+Mapeamento das zonas:
+00001 = Zona 1 - Porta principal
+00010 = Zona 2 - Janela lateral
+00100 = Zona 3 - Área interna
+01000 = Zona 4 - Área externa
+10000 = Zona 5 - Área crítica
+
+Exemplo de mensagem enviada:
+ALERTA: Zona 3 violada - Área interna
+
+Dados enviados:
+- status: disparo
+- zona: 3
+- descrição: área interna
+- origem: FPGA Basys 3

@@ -1,0 +1,58 @@
+ROTEIRO DA APRESENTAÇÃO FINAL
+
+1. Introdução do projeto
+Apresentar o sistema como um alarme perimétrico embarcado com central em FPGA Basys 3, integrado a ESP32, MQTT, dashboard e alertas ao usuário.
+
+2. Objetivo
+Explicar que o objetivo é detectar violações em até cinco zonas, acionar contramedidas e informar ao usuário qual zona foi violada.
+
+3. Arquitetura
+Mostrar o fluxo geral:
+Sensores → FPGA Basys 3 → ESP32 → MQTT → Dashboard/Nuvem → Usuário
+
+4. Central FPGA
+Explicar que a FPGA executa a Máquina de Estados Finita com os estados:
+- DESARMADO
+- ARMADO
+- CONTAGEM
+- DISPARO
+- RESET_ESP
+
+5. Simulação no Vivado
+Mostrar os prints da simulação comportamental, destacando:
+- ativação do sistema
+- violação da zona 3
+- contagem
+- disparo
+- ativação da sirene, estrobo e esp_alerta
+- envio de esp_zonas = 04
+
+6. Fluxo do Vivado
+Mostrar que foram realizadas:
+- síntese
+- implementação
+- geração do bitstream
+
+7. ESP32 e MQTT
+Explicar que o ESP32 recebe esp_alerta e esp_zonas da FPGA, identifica a zona violada e publica as informações via MQTT.
+
+8. Dashboard
+Mostrar o dashboard MQTT funcionando, com:
+- status do sistema
+- zona violada
+- mensagem de alerta
+- confirmação esp_ok
+- contador de disparos
+- histórico
+
+9. Protótipo físico
+Explicar o planejamento da maquete:
+- cinco zonas
+- sensores organizados
+- sirene
+- luz estroboscópica
+- fiação identificada
+- FPGA removível
+
+10. Conclusão
+Concluir que o projeto já possui a lógica principal validada em simulação, fluxo completo no Vivado, código ESP32 planejado/compilado, MQTT configurado e dashboard funcional.

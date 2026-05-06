@@ -1,0 +1,24 @@
+ARQUIVO DE CONSTRAINTS DA BASYS 3
+
+Foi criado o arquivo alarme_basys3.xdc para definir a associação entre as portas lógicas do projeto VHDL e os pinos físicos da placa FPGA Basys 3.
+
+Esse arquivo é necessário para que o Vivado saiba em quais pinos da placa serão conectados sinais como clock, reset, botão de ativação, zonas de sensores, LEDs, display de sete segmentos e sinais de comunicação com o ESP32.
+
+Principais sinais definidos no arquivo .xdc:
+
+- clk: clock principal da Basys 3
+- reset: botão de reset
+- botao_arm: chave para armar/desarmar o sistema
+- zona1 a zona5: entradas digitais das zonas monitoradas
+- esp_ok: confirmação recebida do ESP32
+- sirene: saída para acionamento da sirene
+- estrobo: saída para acionamento da luz estroboscópica
+- esp_alerta: sinal de alerta enviado ao ESP32
+- esp_reset: sinal de reset enviado ao ESP32
+- esp_zonas[4:0]: vetor com a zona violada
+- leds_zona[4:0]: LEDs indicadores das zonas
+- display[6:0]: segmentos do display de sete segmentos
+
+A criação do arquivo .xdc corrigiu os erros de bitstream relacionados a portas sem pinos físicos definidos e I/O Standard não especificado.
+
+Após adicionar o arquivo de constraints ao projeto, o Vivado conseguiu concluir com sucesso a síntese, implementação e geração do bitstream.

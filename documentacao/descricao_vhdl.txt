@@ -1,0 +1,21 @@
+DESCRIÇÃO DO CÓDIGO VHDL
+
+O arquivo alarme_top.vhd implementa a central principal do sistema de alarme perimétrico em FPGA.
+
+A entidade alarme_top possui entradas para clock, reset, botão de ativação do alarme, cinco zonas monitoradas e confirmação do ESP32. As saídas controlam a sirene, luz estroboscópica, sinal de alerta para o ESP32, reset do ESP32, LEDs indicadores das zonas e display de sete segmentos.
+
+A lógica principal foi organizada por uma Máquina de Estados Finita (MEF), composta pelos estados DESARMADO, ARMADO, CONTAGEM, DISPARO e RESET_ESP.
+
+No estado DESARMADO, o sistema permanece inativo e o display indica “d”. No estado ARMADO, o sistema monitora as zonas e o display indica “A”. Quando uma zona é violada, a MEF passa para CONTAGEM, mantendo o registro da zona violada e iniciando uma contagem até 10 ciclos. Após a contagem, o sistema entra em DISPARO, ativando sirene, estrobo e sinal de alerta ao ESP32. Caso o ESP32 não confirme o envio, a MEF aciona o estado RESET_ESP.
+
+A simulação comportamental realizada no Vivado demonstrou a transição correta dos estados e a ativação das saídas esperadas.
+
+ATUALIZAÇÃO - MEMORIZAÇÃO DA ZONA VIOLADA
+
+O código VHDL foi atualizado para incluir o sinal zona_memoria, responsável por armazenar qual zona foi violada no momento em que o sistema estava no estado ARMADO.
+
+Essa melhoria garante que, mesmo que o sinal do sensor mude durante o processo de contagem ou disparo, a central continue mantendo a informação correta da zona que originou o evento.
+
+Com isso, as saídas leds_zona e esp_zonas passam a utilizar zona_memoria durante os estados CONTAGEM, DISPARO e RESET_ESP.
+
+Na simulação, a violação da Zona 3 gerou o valor 04, que permaneceu disponível para indicação visual e envio ao ESP32.

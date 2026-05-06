@@ -1,0 +1,38 @@
+# Arquivos temporários do Vivado
+*.jou
+*.log
+*.str
+*.dmp
+*.zip
+*.bak
+*.tmp
+
+# Pastas geradas automaticamente pelo Vivado
+*.cache/
+*.hw/
+*.ip_user_files/
+*.runs/
+*.sim/
+*.gen/
+*.srcs/
+*.Xil/
+
+# Arquivos de simulação
+xsim.dir/
+*.wdb
+*.vcd
+
+# Arquivos grandes gerados
+*.bit
+*.ltx
+*.rpt
+*.pb
+*.xml
+*.html
+
+# Sistema operacional
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/

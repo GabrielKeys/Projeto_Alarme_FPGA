@@ -1,0 +1,5 @@
+<?xml version="1.0"?>
+<Runs Version="1" Minor="0">
+	<Run Id="synth_1" LaunchDir="C:/Users/Gabriel/OneDrive/Documentos/Atividades/Projeto_Alarme_FPGA/vivado_fpga/Projeto_Alarme_FPGA/Projeto_Alarme_FPGA.runs/synth_1" FlowId="Vivado_Synthesis" FromStepId="vivado" ToStepId="vivado"/>
+</Runs>
+

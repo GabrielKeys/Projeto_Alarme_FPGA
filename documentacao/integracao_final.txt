@@ -1,0 +1,61 @@
+PLANO DE INTEGRAÇÃO FINAL
+
+Objetivo:
+Integrar todas as partes do projeto: FPGA Basys 3, ESP32, sensores, atuadores, MQTT, dashboard e maquete física.
+
+Etapas da integração:
+
+1. Teste da FPGA isolada
+- Programar a Basys 3 com o bitstream gerado no Vivado
+- Testar botao_arm por chave da placa
+- Testar zonas usando switches da Basys 3
+- Verificar LEDs indicadores
+- Verificar display de sete segmentos
+- Verificar saída de sirene e estrobo em LEDs
+
+2. Teste do ESP32 isolado
+- Gravar o código esp32_alarme_mqtt.ino
+- Conectar ao Wi-Fi
+- Conectar ao broker MQTT
+- Publicar mensagem de teste
+- Verificar recebimento no dashboard
+
+3. Integração FPGA → ESP32
+- Conectar esp_alerta da FPGA a uma entrada digital do ESP32
+- Conectar esp_zonas[4:0] da FPGA a cinco entradas digitais do ESP32
+- Conectar esp_ok do ESP32 a uma entrada da FPGA
+- Conectar GND comum entre FPGA e ESP32
+- Testar envio da zona violada
+
+4. Teste do dashboard
+- Abrir dashboard_mqtt.html
+- Verificar conexão com MQTT
+- Acionar uma zona
+- Conferir atualização de status, zona, mensagem, esp_ok e histórico
+
+5. Integração com sensores
+- Substituir switches da Basys 3 pelos sensores reais
+- Testar cada sensor individualmente
+- Confirmar se cada zona aciona corretamente
+
+6. Integração com atuadores
+- Testar sirene
+- Testar luz estroboscópica
+- Usar driver/transistor/módulo adequado se o atuador exigir mais corrente
+- Evitar ligar cargas diretamente na FPGA
+
+7. Teste completo
+- Armar o sistema
+- Violar uma zona
+- Confirmar contagem
+- Confirmar disparo
+- Confirmar zona violada no hardware
+- Confirmar alerta no dashboard
+- Confirmar registro no histórico
+
+Cuidados:
+- Usar GND comum entre os módulos
+- Conferir tensões antes de conectar
+- Evitar corrente excessiva nos pinos da FPGA
+- Organizar e identificar os fios
+- Testar por partes antes da integração total

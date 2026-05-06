@@ -1,0 +1,55 @@
+MEF - Máquina de Estados do Alarme
+
+Estados:
+
+1. DESARMADO
+- Sistema desligado
+- Não monitora sensores
+- Display = d
+
+2. ARMADO
+- Sistema ativo
+- Monitora todas as zonas
+- Display = A
+
+3. CONTAGEM
+- Uma zona foi violada
+- Inicia contagem de tempo (10 segundos)
+- Aguarda antes de disparar
+
+4. DISPARO
+- Sirene ligada
+- Luz estroboscópica ligada
+- Envia sinal ao ESP32
+- Display = U
+
+5. RESET_ESP
+- Caso ESP32 não responda
+- FPGA envia reset para ESP32
+
+
+TRANSIÇÕES:
+
+DESARMADO → ARMADO
+- Quando botão ativar sistema
+
+ARMADO → DESARMADO
+- Quando botão desativar sistema
+
+ARMADO → CONTAGEM
+- Quando qualquer zona for violada
+
+CONTAGEM → DISPARO
+- Quando tempo chegar a 10 segundos
+
+CONTAGEM → ARMADO
+- Se a zona voltar ao normal antes do tempo
+
+DISPARO → ARMADO
+- Após reset manual
+
+DISPARO → RESET_ESP
+- Se ESP32 não confirmar envio
+
+RESET_ESP → ARMADO
+- Após reiniciar ESP32

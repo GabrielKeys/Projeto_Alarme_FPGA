@@ -1,0 +1,45 @@
+PLANEJAMENTO DO DASHBOARD
+
+Objetivo:
+Criar uma interface em nuvem/mobile para visualizar o estado do sistema de alarme, a zona violada e os eventos gerados pelo ESP32 via MQTT.
+
+Plataforma prevista:
+Blynk IoT ou dashboard MQTT compatível.
+
+Informações exibidas no dashboard:
+- Status do sistema
+- Zona violada
+- Mensagem completa do alerta
+- Confirmação do ESP32
+- Histórico dos eventos
+- Contador de disparos
+
+Tópicos MQTT utilizados:
+- mackenzie/alarme/status
+- mackenzie/alarme/zona
+- mackenzie/alarme/mensagem
+- mackenzie/alarme/esp_ok
+
+Exemplo de visualização:
+
+Status:
+disparo
+
+Zona violada:
+3
+
+Mensagem:
+ALERTA: Zona 3 violada - Area interna
+
+ESP32:
+ok
+
+Requisitos do dashboard:
+- Deve ser acessível em padrão mobile
+- Deve mostrar claramente qual zona foi violada
+- Deve permitir demonstração durante a apresentação
+- Deve registrar ou permitir visualização dos eventos
+- Deve estar pronto antes da integração física final
+
+Observação:
+Inicialmente, o dashboard poderá ser validado por meio de um cliente MQTT ou plataforma IoT compatível. Posteriormente, será integrado ao ESP32 durante os testes físicos.

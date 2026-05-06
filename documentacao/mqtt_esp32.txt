@@ -1,0 +1,37 @@
+COMUNICAÇÃO MQTT DO ESP32
+
+Foi criada uma nova versão do código do ESP32 com suporte a Wi-Fi e MQTT.
+
+O ESP32 utiliza as bibliotecas WiFi.h e PubSubClient.h para se conectar à rede Wi-Fi e a um broker MQTT.
+
+Broker utilizado inicialmente:
+broker.hivemq.com
+
+Porta:
+1883
+
+Tópicos MQTT definidos:
+
+1. mackenzie/alarme/status
+Usado para enviar o status do sistema.
+Exemplo: disparo
+
+2. mackenzie/alarme/zona
+Usado para enviar o número da zona violada.
+Exemplo: 3
+
+3. mackenzie/alarme/mensagem
+Usado para enviar a mensagem completa do alerta.
+Exemplo: ALERTA: Zona 3 violada - Area interna
+
+4. mackenzie/alarme/esp_ok
+Usado para indicar que o ESP32 recebeu e processou o alerta.
+Exemplo: ok
+
+Funcionamento:
+O ESP32 aguarda o sinal esp_alerta vindo da FPGA. Quando esse sinal é ativado, o ESP32 lê os bits de esp_zonas, identifica qual zona foi violada, monta a mensagem de alerta e publica as informações nos tópicos MQTT.
+
+Após a publicação, o ESP32 ativa o sinal esp_ok para confirmar à FPGA que o alerta foi processado.
+
+Status:
+O código com Wi-Fi e MQTT foi compilado com sucesso no Arduino IDE.

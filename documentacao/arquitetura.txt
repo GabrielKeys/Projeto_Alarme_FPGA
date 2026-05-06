@@ -1,0 +1,41 @@
+ARQUITETURA DO SISTEMA
+
+Sensores:
+- Zona 1: Reed switch
+- Zona 2: Sensor IR
+- Zona 3: Sensor PIR
+- Zona 4: Ultrassônico HC-SR04
+- Zona 5: Botão/Reed switch
+
+Fluxo principal:
+Sensores → FPGA Basys 3 → ESP32 → MQTT → Dashboard/Nuvem → Usuário
+
+FPGA:
+- Recebe sinais das 5 zonas
+- Controla a MEF do alarme
+- Controla o tempo de disparo
+- Aciona sirene
+- Aciona luz estroboscópica
+- Indica zona violada por LEDs
+- Envia sinal ao ESP32
+
+ESP32:
+- Recebe sinal do FPGA
+- Identifica a zona violada
+- Envia alerta via MQTT
+- Atualiza dashboard
+- Retorna confirmação ao FPGA
+
+Dashboard/Nuvem:
+- Mostra status do alarme
+- Mostra zona violada
+- Registra histórico dos disparos
+- Envia alerta ao usuário
+
+
+[ZONA 1] ┐
+[ZONA 2] ├──> [FPGA / BASYS 3] ───> [ESP32] ───> [MQTT / NUVEM] ───> [DASHBOARD / USUÁRIO]
+[ZONA 3] │           │
+[ZONA 4] │           ├──> Sirene
+[ZONA 5] ┘           ├──> Estrobo
+                      └──> LEDs / Display

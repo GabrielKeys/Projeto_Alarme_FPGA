@@ -1,0 +1,39 @@
+DASHBOARD MQTT
+
+Foi criada uma primeira versão do dashboard do sistema utilizando HTML, CSS e JavaScript.
+
+O dashboard se conecta ao broker MQTT público broker.hivemq.com por WebSocket e assina os tópicos utilizados pelo ESP32:
+
+- mackenzie/alarme/status
+- mackenzie/alarme/zona
+- mackenzie/alarme/mensagem
+- mackenzie/alarme/esp_ok
+
+Informações exibidas:
+
+- Status do sistema
+- Zona violada
+- Mensagem de alerta
+- Confirmação do ESP32
+- Quantidade de disparos
+- Histórico de eventos
+
+Na abertura inicial, o dashboard apresentou conexão com o broker MQTT e ficou aguardando mensagens do ESP32.
+
+Essa etapa valida a interface inicial de monitoramento do sistema, permitindo que futuramente os alertas enviados pelo ESP32 sejam exibidos ao usuário.
+
+TESTE MANUAL DO DASHBOARD VIA MQTT
+
+Foi realizado um teste manual utilizando o cliente WebSocket da HiveMQ para publicar mensagens nos tópicos MQTT do projeto.
+
+Mensagens publicadas:
+- mackenzie/alarme/status = disparo
+- mackenzie/alarme/zona = 3
+- mackenzie/alarme/mensagem = ALERTA: Zona 3 violada - Area interna
+- mackenzie/alarme/esp_ok = ok
+
+Resultado:
+O dashboard recebeu corretamente as mensagens MQTT e atualizou os campos de status, zona violada, mensagem de alerta, confirmação do ESP32, contador de disparos e histórico de eventos.
+
+Conclusão:
+A interface do dashboard foi validada com sucesso para recebimento de mensagens MQTT.

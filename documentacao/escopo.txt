@@ -1,0 +1,31 @@
+Sistema de alarme perimétrico com FPGA (Basys 3), monitorando 5 zonas.
+
+Zonas:
+1 - Porta (reed switch)
+2 - Janela (sensor IR)
+3 - Movimento interno (PIR)
+4 - Área externa (ultrassom)
+5 - Área crítica (botão/reed)
+
+Estados do sistema:
+- DESARMADO
+- ARMADO
+- CONTAGEM
+- DISPARO
+- RESET_ESP
+
+Saídas:
+- Sirene
+- Luz estroboscópica
+- LEDs indicando zona violada
+- Display (A, d, U)
+- Sinal para ESP32
+
+Tempo de disparo: 10 segundos
+
+Comunicação:
+FPGA → ESP32 → MQTT → Dashboard
+
+Contramedidas:
+- Sirene
+- Luz estroboscópica

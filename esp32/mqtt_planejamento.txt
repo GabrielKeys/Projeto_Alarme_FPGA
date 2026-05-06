@@ -1,0 +1,65 @@
+PLANEJAMENTO MQTT DO ESP32
+
+Objetivo:
+Adicionar comunicação MQTT ao ESP32 para enviar os eventos do alarme para uma plataforma de nuvem/dashboard.
+
+Bibliotecas previstas:
+- WiFi.h
+- PubSubClient.h
+
+Dados de conexão necessários:
+- Nome da rede Wi-Fi
+- Senha da rede Wi-Fi
+- Endereço do broker MQTT
+- Porta do broker MQTT
+- Usuário do broker, se necessário
+- Senha do broker, se necessário
+
+Tópicos MQTT previstos:
+
+1. alarme/status
+Uso:
+Enviar o estado geral do sistema.
+
+Exemplos:
+armado
+desarmado
+disparo
+
+2. alarme/zona
+Uso:
+Enviar o número da zona violada.
+
+Exemplos:
+1
+2
+3
+4
+5
+
+3. alarme/mensagem
+Uso:
+Enviar a mensagem completa para o dashboard.
+
+Exemplo:
+ALERTA: Zona 3 violada - Área interna
+
+4. alarme/esp_ok
+Uso:
+Confirmar que o ESP32 recebeu e processou o alerta.
+
+Exemplo:
+ok
+
+Funcionamento esperado:
+1. ESP32 conecta ao Wi-Fi.
+2. ESP32 conecta ao broker MQTT.
+3. ESP32 aguarda sinal esp_alerta vindo da FPGA.
+4. Quando esp_alerta for detectado, ESP32 identifica esp_zonas.
+5. ESP32 publica status, zona e mensagem nos tópicos MQTT.
+6. ESP32 ativa esp_ok para avisar a FPGA.
+7. Dashboard recebe e exibe as informações.
+
+Observação:
+A configuração real do broker MQTT será feita em etapa posterior.
+Inicialmente, será possível usar um broker de teste ou a plataforma Blynk/alternativa compatível.

@@ -1,0 +1,90 @@
+PLANO DE TESTES DO PROJETO
+
+1. Testes em Simulação no Vivado
+
+Objetivo:
+Validar a lógica da central FPGA antes da montagem física.
+
+Testes previstos:
+- Reset inicial do sistema
+- Transição para o estado DESARMADO
+- Ativação do sistema para o estado ARMADO
+- Violação individual de cada zona
+- Entrada no estado CONTAGEM
+- Contagem até o tempo definido
+- Entrada no estado DISPARO
+- Ativação da sirene
+- Ativação da luz estroboscópica
+- Envio do sinal esp_alerta
+- Envio do vetor esp_zonas
+- Acionamento do reset do ESP32 em caso de falha
+
+Resultado esperado:
+A MEF deve transitar corretamente entre os estados e ativar as saídas correspondentes.
+
+2. Testes do ESP32
+
+Objetivo:
+Validar a leitura dos sinais enviados pela FPGA e a comunicação com a nuvem.
+
+Testes previstos:
+- Leitura do sinal esp_alerta
+- Leitura do vetor esp_zonas
+- Identificação da zona violada
+- Montagem da mensagem de alerta
+- Envio dos dados por MQTT
+- Retorno do sinal esp_ok para a FPGA
+
+Resultado esperado:
+O ESP32 deve enviar corretamente a zona violada para o dashboard e confirmar o envio para a FPGA.
+
+3. Testes da Nuvem/Dashboard
+
+Objetivo:
+Validar a visualização e registro dos eventos.
+
+Testes previstos:
+- Exibir status do alarme
+- Exibir zona violada
+- Registrar histórico de disparos
+- Exibir contador de eventos
+- Enviar alerta ao usuário
+
+Resultado esperado:
+O dashboard deve apresentar as informações do sistema de forma clara e em tempo real.
+
+4. Testes Físicos na Maquete
+
+Objetivo:
+Validar o funcionamento integrado do sistema no protótipo físico.
+
+Testes previstos:
+- Teste individual de cada sensor
+- Teste da sirene
+- Teste da luz estroboscópica
+- Teste dos LEDs indicadores
+- Teste da comunicação FPGA → ESP32
+- Teste da comunicação ESP32 → nuvem
+- Teste completo do fluxo de alarme
+
+Resultado esperado:
+Ao violar uma zona, o sistema deve identificar a zona, acionar as contramedidas e enviar o alerta ao usuário.
+
+5. Teste Final de Demonstração
+
+Objetivo:
+Simular uma apresentação real ao cliente/professor.
+
+Sequência prevista:
+1. Abrir o projeto no Vivado
+2. Conectar a Basys 3
+3. Abrir o dashboard/mobile
+4. Armar o sistema
+5. Violar uma zona
+6. Mostrar a zona violada no hardware
+7. Mostrar o alerta no dashboard
+8. Demonstrar sirene e estrobo
+9. Mostrar histórico do evento
+
+Resultado esperado:
+O sistema deve funcionar de ponta a ponta, com FPGA, ESP32, nuvem, dashboard e protótipo físico integrados.

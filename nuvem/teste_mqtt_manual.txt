@@ -1,0 +1,33 @@
+TESTE MQTT MANUAL SEM ESP32
+
+Como o teste físico com ESP32 será realizado posteriormente, foi feito um teste manual da comunicação MQTT utilizando o cliente WebSocket da HiveMQ.
+
+Broker utilizado:
+broker.hivemq.com
+
+Porta WebSocket:
+8884
+
+Tópicos testados:
+
+1. mackenzie/alarme/status
+Mensagem publicada:
+disparo
+
+2. mackenzie/alarme/zona
+Mensagem publicada:
+3
+
+3. mackenzie/alarme/mensagem
+Mensagem publicada:
+ALERTA: Zona 3 violada - Area interna
+
+4. mackenzie/alarme/esp_ok
+Mensagem publicada:
+ok
+
+Resultado:
+O dashboard recebeu corretamente as mensagens publicadas manualmente e atualizou os campos de status, zona violada, mensagem de alerta, confirmação do ESP32, contador de disparos e histórico.
+
+Conclusão:
+Mesmo sem o ESP32 físico, foi possível validar a comunicação MQTT entre o broker e o dashboard.

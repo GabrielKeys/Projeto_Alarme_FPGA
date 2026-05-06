@@ -1,0 +1,29 @@
+TECNOLOGIAS ESCOLHIDAS
+
+1. FPGA Basys 3
+
+A FPGA Basys 3 foi escolhida por ser a placa utilizada na disciplina e por permitir a implementação da central do alarme diretamente em hardware. O uso da FPGA aumenta a confiabilidade do sistema, pois a lógica principal do alarme é executada por circuitos digitais descritos em VHDL, sem depender de um sistema operacional.
+
+2. VHDL
+
+A linguagem VHDL foi utilizada para descrever o funcionamento da central de alarme. Com ela, foi implementada uma Máquina de Estados Finita responsável por controlar os estados DESARMADO, ARMADO, CONTAGEM, DISPARO e RESET_ESP.
+
+3. ESP32
+
+O ESP32 foi escolhido para realizar a comunicação IoT do sistema, pois possui Wi-Fi integrado, baixo custo e ampla compatibilidade com protocolos de comunicação como MQTT. Ele será responsável por receber os sinais da FPGA e enviar os alertas para a nuvem.
+
+4. MQTT
+
+O protocolo MQTT foi escolhido por ser leve, muito utilizado em aplicações IoT e adequado para comunicação entre dispositivos embarcados e plataformas em nuvem. No projeto, ele será usado para enviar o status do alarme e a zona violada.
+
+5. Dashboard em nuvem
+
+O dashboard em nuvem será utilizado para permitir que o usuário visualize o estado do sistema, as zonas violadas e o histórico dos disparos. Inicialmente, a plataforma recomendada é o Blynk IoT, por ser simples de configurar, possuir interface mobile e permitir integração com ESP32.
+
+6. Sensores escolhidos
+
+Foram definidos cinco pontos de monitoramento, utilizando diferentes sensores: reed switch, sensor IR, sensor PIR, sensor ultrassônico HC-SR04 e botão/reed switch adicional. Essa escolha permite simular diferentes tipos de detecção em uma maquete de alarme perimétrico.
+
+7. Contramedidas
+
+As contramedidas escolhidas foram sirene sonora e luz estroboscópica. Essas soluções são seguras para o protótipo, fáceis de demonstrar e atendem ao objetivo de dissuasão do sistema.

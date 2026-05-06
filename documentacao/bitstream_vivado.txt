@@ -1,0 +1,9 @@
+GERAÇÃO DO BITSTREAM NO VIVADO
+
+Após a criação do arquivo de constraints da Basys 3 e a execução das etapas de síntese e implementação, foi realizada a geração do bitstream do projeto.
+
+A geração foi concluída com sucesso no Vivado, indicando que o projeto está pronto para ser futuramente gravado na placa FPGA Basys 3.
+
+Essa etapa valida o fluxo completo de desenvolvimento no Vivado até a criação do arquivo necessário para programação do hardware.
+
+Até o momento, os testes foram realizados em simulação e no fluxo interno do Vivado. A validação física na placa Basys 3 será realizada posteriormente, durante a etapa de integração com o protótipo físico.

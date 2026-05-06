@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - Alarme FPGA</title>
+
+  <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f4f6f8;
+      margin: 0;
+      padding: 30px;
+    }
+
+    h1 {
+      text-align: center;
+      color: #222;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: auto;
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 25px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.12);
+      text-align: center;
+    }
+
+    .card h2 {
+      margin-bottom: 10px;
+      color: #333;
+    }
+
+    .valor {
+      font-size: 28px;
+      font-weight: bold;
+      color: #0066cc;
+    }
+
+    .alerta {
+      grid-column: span 2;
+      background-color: #fff3f3;
+      border-left: 6px solid #cc0000;
+    }
+
+    #historico {
+      text-align: left;
+      font-size: 15px;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>Dashboard do Sistema de Alarme FPGA</h1>
+
+  <div class="container">
+
+    <div class="card">
+      <h2>Status do Sistema</h2>
+      <div id="status" class="valor">Aguardando...</div>
+    </div>
+
+    <div class="card">
+      <h2>Zona Violada</h2>
+      <div id="zona" class="valor">Nenhuma</div>
+    </div>
+
+    <div class="card alerta">
+      <h2>Mensagem de Alerta</h2>
+      <div id="mensagem" class="valor">Sem alerta</div>
+    </div>
+
+    <div class="card">
+      <h2>ESP32</h2>
+      <div id="espok" class="valor">Aguardando...</div>
+    </div>
+
+    <div class="card">
+      <h2>Quantidade de Disparos</h2>
+      <div id="contador" class="valor">0</div>
+    </div>
+
+    <div class="card">
+      <h2>Histórico</h2>
+      <div id="historico"></div>
+    </div>
+
+  </div>
+
+  <script>
+    const broker = "wss://broker.hivemq.com:8884/mqtt";
+
+    const topicStatus = "mackenzie/alarme/status";
+    const topicZona = "mackenzie/alarme/zona";
+    const topicMensagem = "mackenzie/alarme/mensagem";
+    const topicEspOk = "mackenzie/alarme/esp_ok";
+
+    let contadorDisparos = 0;
+
+    const client = mqtt.connect(broker);
+
+    client.on("connect", function () {
+      console.log("Conectado ao broker MQTT");
+
+      client.subscribe(topicStatus);
+      client.subscribe(topicZona);
+      client.subscribe(topicMensagem);
+      client.subscribe(topicEspOk);
+
+      document.getElementById("status").innerText = "Conectado";
+    });
+
+    client.on("message", function (topic, message) {
+      const valor = message.toString();
+
+      if (topic === topicStatus) {
+        document.getElementById("status").innerText = valor;
+
+        if (valor === "disparo") {
+          contadorDisparos++;
+          document.getElementById("contador").innerText = contadorDisparos;
+        }
+      }
+
+      if (topic === topicZona) {
+        document.getElementById("zona").innerText = "Zona " + valor;
+      }
+
+      if (topic === topicMensagem) {
+        document.getElementById("mensagem").innerText = valor;
+
+        const historico = document.getElementById("historico");
+        const dataHora = new Date().toLocaleString();
+
+        historico.innerHTML =
+          "<p><strong>" + dataHora + "</strong><br>" + valor + "</p>" +
+          historico.innerHTML;
+      }
+
+      if (topic === topicEspOk) {
+        document.getElementById("espok").innerText = valor;
+      }
+    });
+  </script>
+
+</body>
+</html>

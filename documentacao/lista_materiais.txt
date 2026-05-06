@@ -1,0 +1,41 @@
+LISTA DE MATERIAIS DO PROJETO
+
+1. Placas e módulos principais
+- FPGA Basys 3
+- ESP32 DevKit
+- Cabo USB para Basys 3
+- Cabo USB para ESP32
+
+2. Sensores
+- Reed switch para porta
+- Sensor IR de obstáculo
+- Sensor PIR
+- Sensor ultrassônico HC-SR04
+- Botão ou reed switch adicional
+
+3. Atuadores
+- Buzzer ou sirene
+- LED de alta potência ou módulo de luz estroboscópica
+- LEDs indicadores auxiliares, se necessário
+
+4. Componentes eletrônicos auxiliares
+- Resistores
+- Transistores ou módulos de relé para acionamento de cargas
+- Protoboard
+- Jumpers macho-macho
+- Jumpers macho-fêmea
+- Cabos UTP ou fios organizados
+- Fonte externa para atuadores, se necessário
+
+5. Maquete
+- Base de MDF ou madeira
+- Papelão rígido ou MDF fino para paredes
+- Cola quente ou fita dupla face
+- Etiquetas para identificação das zonas
+- Suportes para sensores
+
+6. Software
+- Vivado
+- Arduino IDE
+- Navegador para dashboard MQTT
+- GitHub para documentação e versionamento

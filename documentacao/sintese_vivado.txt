@@ -1,0 +1,9 @@
+SÍNTESE NO VIVADO
+
+Foi realizada a síntese do módulo principal alarme_top no Vivado.
+
+A síntese foi concluída com sucesso, indicando que o código VHDL da central de alarme é interpretável pelo Vivado e pode ser convertido para uma estrutura lógica em FPGA.
+
+Essa etapa valida que a descrição em VHDL da Máquina de Estados Finita, do controle de zonas, do contador, da memorização da zona violada e das saídas de alerta está adequada para implementação em hardware.
+
+Após a síntese, o Vivado abriu a visualização do design sintetizado, permitindo verificar que o projeto foi aceito para a próxima etapa do fluxo, que será a implementação.

@@ -1,0 +1,17 @@
+ARQUITETURA DO PROJETO
+
+O sistema proposto é um alarme perimétrico embarcado, cuja central de controle é implementada em FPGA Basys 3. A arquitetura foi organizada em camadas, separando a aquisição dos sinais dos sensores, o processamento lógico em hardware, a comunicação com a nuvem e a interface com o usuário.
+
+A primeira camada é formada pelos sensores das zonas monitoradas. O sistema possui cinco zonas, representando pontos estratégicos de uma maquete, como porta, janela, área interna, área externa e corredor. Cada zona fornece um sinal digital para a FPGA, indicando condição normal ou violação.
+
+A segunda camada é a central embarcada em FPGA. Essa central é responsável por executar a Máquina de Estados Finita do alarme, controlar os estados DESARMADO, ARMADO, CONTAGEM, DISPARO e RESET_ESP, identificar a zona violada, acionar os LEDs indicadores, controlar a sirene e a luz estroboscópica e enviar sinal de alerta ao ESP32.
+
+A terceira camada é composta pelo ESP32, responsável pela comunicação IoT do sistema. O ESP32 recebe da FPGA a informação de alerta e a zona violada, envia esses dados por MQTT para uma plataforma em nuvem e retorna um sinal de confirmação para a FPGA.
+
+A quarta camada é formada pela nuvem e pelo dashboard. Essa camada permite ao usuário visualizar o estado do sistema, acompanhar as zonas violadas, registrar o histórico de disparos e receber alertas por meios de comunicação configurados.
+
+O fluxo geral da arquitetura é:
+
+Sensores → FPGA Basys 3 → ESP32 → MQTT → Dashboard/Nuvem → Usuário
+
+Essa separação facilita a organização do projeto, os testes individuais de cada parte e a futura integração física do protótipo.

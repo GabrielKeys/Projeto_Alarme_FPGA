@@ -1,0 +1,16 @@
+COMPILAÇÃO DO CÓDIGO ESP32
+
+Foi criado o arquivo esp32_alarme_mqtt.ino para representar a lógica inicial de comunicação entre a FPGA Basys 3 e o ESP32.
+
+Nesta primeira versão, o ESP32 realiza a leitura dos sinais digitais vindos da FPGA:
+
+- esp_alerta
+- esp_zonas[4:0]
+
+A partir desses sinais, o ESP32 identifica qual zona foi violada e prepara uma mensagem de alerta no monitor serial.
+
+Também foi previsto o sinal esp_ok, usado para informar à FPGA que o alerta foi recebido e processado.
+
+O código foi compilado com sucesso no Arduino IDE utilizando uma placa ESP32, validando que a estrutura inicial do programa está correta.
+
+Nesta etapa ainda não foi realizada a comunicação MQTT real. A integração com MQTT e dashboard será desenvolvida posteriormente.
