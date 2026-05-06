@@ -37,3 +37,11 @@ O dashboard recebeu corretamente as mensagens MQTT e atualizou os campos de stat
 
 Conclusão:
 A interface do dashboard foi validada com sucesso para recebimento de mensagens MQTT.
+
+ATUALIZAÇÃO VISUAL DO DASHBOARD
+
+O dashboard foi atualizado para uma versão mais organizada e profissional, com cards separados, indicador de conexão MQTT, cores diferentes para os estados do sistema, botão para limpar histórico, contador de disparos e histórico de eventos.
+
+Foi realizado um novo teste de recebimento MQTT, no qual o dashboard apresentou o status “disparo”, a Zona 3 violada, a mensagem de alerta, a confirmação “ok” do ESP32 e o registro do evento no histórico.
+
+Essa atualização melhora a apresentação do sistema e facilita a visualização das informações pelo usuário.

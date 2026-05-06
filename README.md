@@ -165,6 +165,25 @@ Além disso, foi implementada a memorização da zona violada por meio do sinal 
 
 Como extensão futura, os dados registrados no dashboard poderão ser usados para análise estatística e possível aplicação de IA simples, considerando fatores como horário, frequência de disparos, zona acionada e repetição de eventos.
 
+## Relatório Parcial
+
+Foi criado um relatório parcial do projeto contendo:
+
+- Objetivo do sistema
+- Arquitetura geral
+- Central FPGA em VHDL
+- Simulação no Vivado
+- Síntese, implementação e bitstream
+- ESP32 e MQTT
+- Dashboard
+- Estratégia inicial de redução de falso-positivos
+- Próximas etapas
+
+O arquivo está disponível em:
+
+```text
+documentacao/relatorio_parcial.txt
+
 ## Tecnologias Utilizadas
 
 - VHDL

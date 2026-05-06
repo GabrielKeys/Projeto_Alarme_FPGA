@@ -2,74 +2,208 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - Alarme FPGA</title>
 
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
 
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #f4f6f8;
-      margin: 0;
-      padding: 30px;
+    * {
+      box-sizing: border-box;
     }
 
-    h1 {
-      text-align: center;
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f4f6f8;
       color: #222;
     }
 
+    header {
+      background: #0d1b2a;
+      color: white;
+      padding: 20px;
+      text-align: center;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 28px;
+    }
+
+    header p {
+      margin: 8px 0 0;
+      font-size: 14px;
+      color: #cbd5e1;
+    }
+
+    .topbar {
+      max-width: 1200px;
+      margin: 20px auto 0;
+      padding: 0 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .conexao {
+      padding: 10px 16px;
+      border-radius: 8px;
+      font-weight: bold;
+      color: white;
+      background: #6c757d;
+    }
+
+    .conectado {
+      background: #198754;
+    }
+
+    .desconectado {
+      background: #dc3545;
+    }
+
+    .acoes button {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: bold;
+      background: #0d6efd;
+      color: white;
+    }
+
+    .acoes button:hover {
+      background: #0b5ed7;
+    }
+
     .container {
-      max-width: 900px;
-      margin: auto;
+      max-width: 1200px;
+      margin: 20px auto;
+      padding: 0 20px 30px;
       display: grid;
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
       gap: 20px;
     }
 
     .card {
       background: white;
-      padding: 25px;
-      border-radius: 12px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.12);
-      text-align: center;
+      border-radius: 14px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+      padding: 20px;
+      min-height: 140px;
     }
 
     .card h2 {
-      margin-bottom: 10px;
+      margin-top: 0;
+      font-size: 18px;
       color: #333;
+      margin-bottom: 15px;
     }
 
     .valor {
       font-size: 28px;
       font-weight: bold;
-      color: #0066cc;
+      color: #0d6efd;
+      word-break: break-word;
     }
 
-    .alerta {
-      grid-column: span 2;
-      background-color: #fff3f3;
-      border-left: 6px solid #cc0000;
+    .valor-menor {
+      font-size: 20px;
+      font-weight: bold;
+      color: #0d6efd;
+      word-break: break-word;
+    }
+
+    .alerta-card {
+      grid-column: 1 / -1;
+      border-left: 6px solid #dc3545;
+      background: #fff5f5;
+    }
+
+    .status-armado {
+      color: #fd7e14;
+    }
+
+    .status-desarmado {
+      color: #6c757d;
+    }
+
+    .status-disparo {
+      color: #dc3545;
+    }
+
+    .status-ok {
+      color: #198754;
+    }
+
+    .status-espera {
+      color: #6c757d;
     }
 
     #historico {
-      text-align: left;
-      font-size: 15px;
-      max-height: 200px;
+      max-height: 260px;
       overflow-y: auto;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .evento {
+      border-bottom: 1px solid #ddd;
+      padding: 10px 0;
+    }
+
+    .evento:last-child {
+      border-bottom: none;
+    }
+
+    .evento strong {
+      color: #0d1b2a;
+    }
+
+    .rodape {
+      text-align: center;
+      color: #666;
+      font-size: 13px;
+      padding: 15px;
+    }
+
+    @media (max-width: 600px) {
+      header h1 {
+        font-size: 22px;
+      }
+
+      .valor {
+        font-size: 24px;
+      }
+
+      .valor-menor {
+        font-size: 18px;
+      }
     }
   </style>
 </head>
 
 <body>
 
-  <h1>Dashboard do Sistema de Alarme FPGA</h1>
+  <header>
+    <h1>Dashboard do Sistema de Alarme FPGA</h1>
+    <p>Monitoramento em tempo real via MQTT</p>
+  </header>
+
+  <div class="topbar">
+    <div id="statusConexao" class="conexao desconectado">MQTT: Desconectado</div>
+
+    <div class="acoes">
+      <button onclick="limparHistorico()">Limpar histórico</button>
+    </div>
+  </div>
 
   <div class="container">
-
     <div class="card">
       <h2>Status do Sistema</h2>
-      <div id="status" class="valor">Aguardando...</div>
+      <div id="status" class="valor status-espera">Aguardando...</div>
     </div>
 
     <div class="card">
@@ -77,14 +211,9 @@
       <div id="zona" class="valor">Nenhuma</div>
     </div>
 
-    <div class="card alerta">
-      <h2>Mensagem de Alerta</h2>
-      <div id="mensagem" class="valor">Sem alerta</div>
-    </div>
-
     <div class="card">
       <h2>ESP32</h2>
-      <div id="espok" class="valor">Aguardando...</div>
+      <div id="espok" class="valor status-espera">Aguardando...</div>
     </div>
 
     <div class="card">
@@ -92,11 +221,19 @@
       <div id="contador" class="valor">0</div>
     </div>
 
-    <div class="card">
-      <h2>Histórico</h2>
-      <div id="historico"></div>
+    <div class="card alerta-card">
+      <h2>Mensagem de Alerta</h2>
+      <div id="mensagem" class="valor-menor">Sem alerta</div>
     </div>
 
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>Histórico de Eventos</h2>
+      <div id="historico">Nenhum evento registrado.</div>
+    </div>
+  </div>
+
+  <div class="rodape">
+    Projeto de Sistema Embarcado de Alarme Perimétrico com FPGA
   </div>
 
   <script>
@@ -108,51 +245,110 @@
     const topicEspOk = "mackenzie/alarme/esp_ok";
 
     let contadorDisparos = 0;
+    let ultimoStatus = "";
+    let ultimaZona = "";
+    let ultimaMensagem = "";
 
     const client = mqtt.connect(broker);
 
     client.on("connect", function () {
-      console.log("Conectado ao broker MQTT");
+      document.getElementById("statusConexao").innerText = "MQTT: Conectado";
+      document.getElementById("statusConexao").classList.remove("desconectado");
+      document.getElementById("statusConexao").classList.add("conectado");
 
       client.subscribe(topicStatus);
       client.subscribe(topicZona);
       client.subscribe(topicMensagem);
       client.subscribe(topicEspOk);
+    });
 
-      document.getElementById("status").innerText = "Conectado";
+    client.on("reconnect", function () {
+      document.getElementById("statusConexao").innerText = "MQTT: Reconectando...";
+      document.getElementById("statusConexao").classList.remove("conectado");
+      document.getElementById("statusConexao").classList.add("desconectado");
+    });
+
+    client.on("offline", function () {
+      document.getElementById("statusConexao").innerText = "MQTT: Offline";
+      document.getElementById("statusConexao").classList.remove("conectado");
+      document.getElementById("statusConexao").classList.add("desconectado");
     });
 
     client.on("message", function (topic, message) {
       const valor = message.toString();
 
       if (topic === topicStatus) {
-        document.getElementById("status").innerText = valor;
+        ultimoStatus = valor;
+        atualizarStatus(valor);
 
-        if (valor === "disparo") {
+        if (valor.toLowerCase() === "disparo") {
           contadorDisparos++;
           document.getElementById("contador").innerText = contadorDisparos;
         }
       }
 
       if (topic === topicZona) {
+        ultimaZona = valor;
         document.getElementById("zona").innerText = "Zona " + valor;
       }
 
       if (topic === topicMensagem) {
+        ultimaMensagem = valor;
         document.getElementById("mensagem").innerText = valor;
-
-        const historico = document.getElementById("historico");
-        const dataHora = new Date().toLocaleString();
-
-        historico.innerHTML =
-          "<p><strong>" + dataHora + "</strong><br>" + valor + "</p>" +
-          historico.innerHTML;
+        adicionarHistorico(valor);
       }
 
       if (topic === topicEspOk) {
-        document.getElementById("espok").innerText = valor;
+        const esp = document.getElementById("espok");
+        esp.innerText = valor;
+
+        esp.className = "valor";
+        if (valor.toLowerCase() === "ok") {
+          esp.classList.add("status-ok");
+        } else {
+          esp.classList.add("status-espera");
+        }
       }
     });
+
+    function atualizarStatus(status) {
+      const el = document.getElementById("status");
+      el.innerText = status;
+      el.className = "valor";
+
+      const s = status.toLowerCase();
+
+      if (s === "armado") {
+        el.classList.add("status-armado");
+      } else if (s === "desarmado") {
+        el.classList.add("status-desarmado");
+      } else if (s === "disparo") {
+        el.classList.add("status-disparo");
+      } else {
+        el.classList.add("status-espera");
+      }
+    }
+
+    function adicionarHistorico(mensagem) {
+      const historico = document.getElementById("historico");
+      const dataHora = new Date().toLocaleString();
+
+      if (historico.innerText === "Nenhum evento registrado.") {
+        historico.innerHTML = "";
+      }
+
+      historico.innerHTML =
+        `<div class="evento">
+          <strong>${dataHora}</strong><br>
+          ${mensagem}
+        </div>` + historico.innerHTML;
+    }
+
+    function limparHistorico() {
+      document.getElementById("historico").innerText = "Nenhum evento registrado.";
+      contadorDisparos = 0;
+      document.getElementById("contador").innerText = "0";
+    }
   </script>
 
 </body>

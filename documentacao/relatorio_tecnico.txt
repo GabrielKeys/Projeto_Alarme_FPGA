@@ -1,0 +1,84 @@
+RELATÓRIO TÉCNICO DO PROJETO
+
+1. Objetivo
+
+O objetivo do projeto é desenvolver um sistema embarcado de alarme perimétrico utilizando uma central implementada em FPGA Basys 3. O sistema monitora cinco zonas, identifica qual zona foi violada, aciona contramedidas e envia alertas ao usuário por meio de ESP32, MQTT e dashboard em nuvem.
+
+2. Arquitetura do Sistema
+
+A arquitetura foi organizada em camadas:
+
+Sensores → FPGA Basys 3 → ESP32 → MQTT → Dashboard/Nuvem → Usuário
+
+A FPGA é responsável pela lógica principal do alarme, enquanto o ESP32 realiza a comunicação IoT com a nuvem. O dashboard apresenta ao usuário o status do sistema, a zona violada, a mensagem de alerta, a confirmação do ESP32 e o histórico de eventos.
+
+3. Central FPGA
+
+A central do alarme foi implementada em VHDL, utilizando uma Máquina de Estados Finita composta pelos estados DESARMADO, ARMADO, CONTAGEM, DISPARO e RESET_ESP.
+
+A FPGA monitora cinco entradas correspondentes às zonas do sistema. Quando uma zona é violada, a central armazena a zona em uma memória interna, realiza uma contagem e, em seguida, entra no estado de disparo, ativando sirene, estrobo, LEDs indicadores e sinal de alerta para o ESP32.
+
+4. Zonas Monitoradas
+
+O sistema monitora cinco zonas:
+
+- Zona 1: Porta principal
+- Zona 2: Janela lateral
+- Zona 3: Área interna
+- Zona 4: Área externa
+- Zona 5: Área crítica
+
+Cada zona é associada a um sensor ou entrada digital, permitindo identificar de forma individual qual ponto do perímetro foi violado.
+
+5. Simulação no Vivado
+
+Foi criado um testbench para validar o comportamento da central FPGA. Na simulação, o sistema foi resetado, armado e teve uma das zonas violadas. O sistema passou pelos estados DESARMADO, ARMADO, CONTAGEM e DISPARO.
+
+Durante o teste, foi validado o vetor de zonas, o contador, o acionamento das saídas de alerta e o sinal esp_zonas, responsável por enviar ao ESP32 a informação da zona violada.
+
+6. Síntese, Implementação e Bitstream
+
+Após a validação por simulação, o projeto foi sintetizado no Vivado. Em seguida, foi realizada a implementação e a geração do bitstream.
+
+O arquivo alarme_basys3.xdc foi utilizado para associar as portas do projeto aos pinos físicos da Basys 3 e definir o padrão elétrico LVCMOS33.
+
+Com isso, o fluxo de desenvolvimento no Vivado foi concluído com sucesso, passando pelas etapas de simulação, síntese, implementação e geração do bitstream.
+
+7. ESP32 e MQTT
+
+Foi desenvolvido um código para o ESP32 no Arduino IDE. O ESP32 lê o sinal esp_alerta e o vetor esp_zonas[4:0], identifica a zona violada e prepara a mensagem de alerta.
+
+O código inclui conexão Wi-Fi e comunicação MQTT usando as bibliotecas WiFi.h e PubSubClient.h.
+
+Os tópicos MQTT definidos foram:
+
+- mackenzie/alarme/status
+- mackenzie/alarme/zona
+- mackenzie/alarme/mensagem
+- mackenzie/alarme/esp_ok
+
+Por meio desses tópicos, o ESP32 publica o status do sistema, a zona violada, a mensagem completa do alerta e a confirmação de processamento.
+
+8. Dashboard
+
+Foi criado um dashboard em HTML, CSS e JavaScript, conectado ao broker MQTT da HiveMQ via WebSocket. O dashboard exibe o status do sistema, zona violada, mensagem de alerta, confirmação do ESP32, contador de disparos e histórico dos eventos.
+
+A interface permite acompanhar o funcionamento do alarme em tempo real e visualizar claramente qual zona foi violada.
+
+9. Redução de Falso-Positivos
+
+A estratégia inicial de redução de falso-positivos foi implementada pela própria Máquina de Estados Finita. Quando uma zona é violada, o sistema não dispara imediatamente, passando antes pelo estado CONTAGEM.
+
+Além disso, a zona violada é memorizada, evitando perda da informação durante a contagem e o disparo. Os dados registrados pelo sistema também permitem análise estatística dos eventos.
+
+10. Protótipo Físico
+
+O protótipo físico é organizado em uma maquete, representando um ambiente com cinco zonas monitoradas. A maquete integra sensores, atuadores, FPGA Basys 3, ESP32, fiação organizada e interface de dashboard.
+
+A Basys 3 é mantida de forma removível, permitindo conexão e desconexão segura durante os testes e apresentação.
+
+11. Conclusão
+
+O projeto integra hardware digital em FPGA, comunicação IoT com ESP32, protocolo MQTT, dashboard em nuvem e protótipo físico. A central em FPGA controla a lógica principal do alarme, identifica as zonas violadas, aciona contramedidas e envia informações ao ESP32, que realiza a comunicação com o usuário.
+
+Com isso, o sistema atende à proposta de um alarme perimétrico embarcado, com identificação de zonas, comunicação em tempo real e organização modular entre hardware, software e nuvem.

@@ -1,0 +1,44 @@
+DIAGRAMA DA ARQUITETURA DO SISTEMA
+
+Fluxo principal:
+
+[ Sensores das Zonas ]
+        |
+        v
+[ FPGA Basys 3 - Central do Alarme ]
+        |
+        |----> LEDs indicadores das zonas
+        |----> Display de sete segmentos
+        |----> Sirene
+        |----> Luz estroboscópica
+        |
+        v
+[ ESP32 - Comunicação IoT ]
+        |
+        v
+[ MQTT / Broker ]
+        |
+        v
+[ Dashboard / Nuvem / Usuário ]
+
+Detalhamento das entradas da FPGA:
+
+Zona 1: Porta principal - Reed switch
+Zona 2: Janela lateral - Sensor IR
+Zona 3: Área interna - Sensor PIR
+Zona 4: Área externa - Sensor ultrassônico HC-SR04
+Zona 5: Área crítica - Botão ou reed switch
+
+Detalhamento das saídas da FPGA:
+
+sirene: aciona o alerta sonoro
+estrobo: aciona a luz estroboscópica
+leds_zona[4:0]: indica a zona violada
+display[6:0]: mostra o estado do sistema
+esp_alerta: informa ao ESP32 que houve disparo
+esp_zonas[4:0]: informa ao ESP32 qual zona foi violada
+esp_reset: reinicia o ESP32 em caso de falha
+
+Sinal de retorno do ESP32:
+
+esp_ok: confirma para a FPGA que o alerta foi processado
