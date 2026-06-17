@@ -301,6 +301,11 @@
       <div id="contador" class="valor">0</div>
     </div>
 
+    <div class="card">
+      <h2>Confiança IA (triagem)</h2>
+      <div id="iaConfianca" class="valor-menor">Sem disparo recente</div>
+    </div>
+
     <div class="card alerta-card">
       <h2>Mensagem de Alerta</h2>
       <div id="mensagem" class="valor-menor">Sem alerta</div>
@@ -350,10 +355,81 @@
 
     // ===== Persistencia dos disparos no Firestore =====
 
-    function salvarDisparoFirestore(zona, mensagem) {
+    // "IA" simples de triagem: nao decide se a sirene toca (isso e sempre
+    // a FPGA), so calcula uma confianca de 0 a 100 de que o disparo e uma
+    // intrusao real, baseada no historico de uso do proprio sistema.
+    async function calcularConfiancaIA(zona) {
+      const zonaStr = String(zona || "0");
+      const dezMinutosAtras = firebase.firestore.Timestamp.fromDate(
+        new Date(Date.now() - 10 * 60 * 1000)
+      );
+
+      let totalZona = 0;
+      let recentesZona = 0;
+      let totalGeral = 0;
+
+      try {
+        const r1 = await db.collection("disparos").where("zona", "==", zonaStr).count().get();
+        totalZona = r1.data().count;
+
+        const r2 = await db.collection("disparos")
+          .where("zona", "==", zonaStr)
+          .where("timestamp", ">=", dezMinutosAtras)
+          .count().get();
+        recentesZona = r2.data().count;
+
+        const r3 = await db.collection("disparos").count().get();
+        totalGeral = r3.data().count;
+      } catch (erro) {
+        // Erro comum aqui na primeira execucao: Firestore pede um indice
+        // composto pra essa consulta (zona + timestamp). O proprio erro
+        // no console do navegador traz um link que cria o indice em ~1 minuto.
+        console.error("Erro ao calcular confianca da IA (pode precisar criar indice no Firestore):", erro);
+        return { score: null, rotulo: "Sem dados suficientes" };
+      }
+
+      let score = 70; // base: ja passou pelo filtro CONTAGEM da FPGA
+
+      const hora = new Date().getHours();
+      const horarioDeRisco = (hora >= 22 || hora < 6);
+      score += horarioDeRisco ? 15 : -5;
+
+      if (recentesZona >= 4) score -= 30;
+      else if (recentesZona >= 2) score -= 15;
+
+      if (totalGeral >= 10 && (totalZona / totalGeral) > 0.5) score -= 15;
+
+      score = Math.max(0, Math.min(100, score));
+
+      let rotulo;
+      if (score >= 70) rotulo = "Alta confiança de intrusão real";
+      else if (score >= 40) rotulo = "Confiança média, vale revisar";
+      else rotulo = "Baixa confiança, padrão de falso-positivo";
+
+      return { score, rotulo };
+    }
+
+    function atualizarCardIA(resultado) {
+      const el = document.getElementById("iaConfianca");
+      if (!el) return;
+
+      if (resultado.score === null) {
+        el.innerText = resultado.rotulo;
+        return;
+      }
+
+      el.innerText = resultado.score + "% — " + resultado.rotulo;
+    }
+
+    async function salvarDisparoFirestore(zona, mensagem) {
+      const resultado = await calcularConfiancaIA(zona);
+      atualizarCardIA(resultado);
+
       db.collection("disparos").add({
         zona: zona || "0",
         mensagem: mensagem,
+        confiancaIA: resultado.score,
+        rotuloIA: resultado.rotulo,
         timestamp: firebase.firestore.FieldValue.serverTimestamp()
       }).catch(function (erro) {
         console.error("Erro ao salvar disparo no Firestore:", erro);
@@ -404,15 +480,29 @@
 
       db.collection("disparos").get().then(function (snapshot) {
         const contagem = {};
+        const somaConfianca = {};
+
         snapshot.forEach(function (doc) {
-          const z = doc.data().zona || "0";
+          const dados = doc.data();
+          const z = dados.zona || "0";
           contagem[z] = (contagem[z] || 0) + 1;
+
+          if (typeof dados.confiancaIA === "number") {
+            somaConfianca[z] = (somaConfianca[z] || 0) + dados.confiancaIA;
+          }
         });
 
         let linhas = [];
         Object.keys(contagem).sort().forEach(function (zona) {
           const nome = nomesZonas[zona] || ("Zona " + zona);
-          linhas.push(nome + ": " + contagem[zona] + " disparo(s)");
+          let linha = nome + ": " + contagem[zona] + " disparo(s)";
+
+          if (somaConfianca[zona] !== undefined) {
+            const media = Math.round(somaConfianca[zona] / contagem[zona]);
+            linha += " (confiança média " + media + "%)";
+          }
+
+          linhas.push(linha);
         });
 
         el.innerText = linhas.length > 0 ? linhas.join(" | ") : "Sem disparos registrados ainda.";
