@@ -62,10 +62,10 @@ const char* password = "batata123";
 // ===== CONFIGURACOES MQTT (broker privado, TLS, com autenticacao) =====
 // ### PREENCHA AQUI ### com os dados do SEU cluster gratuito na HiveMQ Cloud
 // (console.hivemq.cloud -> Create cluster -> Access Management -> Add credentials)
-const char* mqtt_server = "SEU-CLUSTER.s1.eu.hivemq.cloud"; // host do seu cluster
+const char* mqtt_server = ec05553814694e298758239a3dad8864.s1.eu.hivemq.cloud; // host do seu cluster
 const int   mqtt_port   = 8883;                              // 8883 = MQTT com TLS
-const char* mqtt_user   = "SEU_USUARIO_MQTT";
-const char* mqtt_pass   = "SUA_SENHA_MQTT";
+const char* mqtt_user   = Polegato;
+const char* mqtt_pass   = Polegato1;
 
 // Topicos MQTT
 const char* topic_status   = "mackenzie/alarme/status";
@@ -78,8 +78,8 @@ const char* topic_comando  = "mackenzie/alarme/comando";
 // ### PREENCHA AQUI ### depois de cadastrar seu numero no CallMeBot
 // (mande "I allow callmebot to send me messages" pelo WhatsApp para
 // +34 644 59 71 67 e ele responde com o apikey)
-const char* whatsapp_numero  = "55119XXXXXXXX"; // com codigo do pais, sem + nem espaco
-const char* whatsapp_apikey  = "SEU_APIKEY_CALLMEBOT";
+const char* whatsapp_numero  = "5511991122803"; // com codigo do pais, sem + nem espaco
+const char* whatsapp_apikey  = "3811681";
 
 WiFiClientSecure espClient;
 PubSubClient client(espClient);
