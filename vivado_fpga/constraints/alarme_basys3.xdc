@@ -26,17 +26,19 @@ set_property IOSTANDARD LVCMOS33 [get_ports zona4]
 set_property PACKAGE_PIN V15 [get_ports zona5]
 set_property IOSTANDARD LVCMOS33 [get_ports zona5]
 
-set_property PACKAGE_PIN W14 [get_ports esp_ok]
+## PMOD JA10 - esp_ok vindo do ESP32
+set_property PACKAGE_PIN G3 [get_ports esp_ok]
 set_property IOSTANDARD LVCMOS33 [get_ports esp_ok]
 
-## Saídas principais em LEDs
+## Saidas principais em LEDs
 set_property PACKAGE_PIN U15 [get_ports sirene]
 set_property IOSTANDARD LVCMOS33 [get_ports sirene]
 
 set_property PACKAGE_PIN U14 [get_ports estrobo]
 set_property IOSTANDARD LVCMOS33 [get_ports estrobo]
 
-set_property PACKAGE_PIN V14 [get_ports esp_alerta]
+## PMOD JA1 - sinal de alerta para ESP32
+set_property PACKAGE_PIN J1 [get_ports esp_alerta]
 set_property IOSTANDARD LVCMOS33 [get_ports esp_alerta]
 
 set_property PACKAGE_PIN V13 [get_ports esp_reset]
@@ -58,22 +60,27 @@ set_property IOSTANDARD LVCMOS33 [get_ports {leds_zona[3]}]
 set_property PACKAGE_PIN W18 [get_ports {leds_zona[4]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {leds_zona[4]}]
 
-## Vetor enviado ao ESP32 - temporariamente em LEDs extras para teste
-set_property PACKAGE_PIN W3 [get_ports {esp_zonas[0]}]
+## Vetor enviado ao ESP32 pelo PMOD JB
+
+## JB1 - Zona 1
+set_property PACKAGE_PIN A14 [get_ports {esp_zonas[0]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {esp_zonas[0]}]
 
-set_property PACKAGE_PIN U3 [get_ports {esp_zonas[1]}]
+## JB2 - Zona 2
+set_property PACKAGE_PIN A16 [get_ports {esp_zonas[1]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {esp_zonas[1]}]
 
-set_property PACKAGE_PIN P3 [get_ports {esp_zonas[2]}]
+## JB3 - Zona 3
+set_property PACKAGE_PIN B15 [get_ports {esp_zonas[2]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {esp_zonas[2]}]
 
-set_property PACKAGE_PIN N3 [get_ports {esp_zonas[3]}]
+## JB4 - Zona 4
+set_property PACKAGE_PIN B16 [get_ports {esp_zonas[3]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {esp_zonas[3]}]
 
-set_property PACKAGE_PIN P1 [get_ports {esp_zonas[4]}]
+## JB7 - Zona 5
+set_property PACKAGE_PIN A15 [get_ports {esp_zonas[4]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {esp_zonas[4]}]
-
 ## Display de 7 segmentos
 set_property PACKAGE_PIN W7 [get_ports {display[0]}]
 set_property IOSTANDARD LVCMOS33 [get_ports {display[0]}]

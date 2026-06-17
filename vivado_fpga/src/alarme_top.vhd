@@ -29,12 +29,19 @@ end alarme_top;
 
 architecture Behavioral of alarme_top is
 
-    type estado_t is (DESARMADO, ARMADO, DISPARO);
+    type estado_t is (DESARMADO, ARMADO, DISPARO, RESET_ESP);
     signal estado_atual : estado_t := DESARMADO;
 
     signal zonas        : STD_LOGIC_VECTOR(4 downto 0);
     signal zona_violada : STD_LOGIC;
     signal zona_memoria : STD_LOGIC_VECTOR(4 downto 0) := "00000";
+
+    -- Clock da Basys 3 = 100 MHz
+    -- 100.000.000 ciclos = 1 segundo
+    signal contador_clk      : integer range 0 to 100000000 := 0;
+    signal contador_segundos : integer range 0 to 5 := 0;
+
+    signal esp_ok_recebido : STD_LOGIC := '0';
 
 begin
 
@@ -49,6 +56,10 @@ begin
             estado_atual <= DESARMADO;
             zona_memoria <= "00000";
 
+            contador_clk <= 0;
+            contador_segundos <= 0;
+            esp_ok_recebido <= '0';
+
         elsif rising_edge(clk) then
 
             case estado_atual is
@@ -56,13 +67,22 @@ begin
                 when DESARMADO =>
                     zona_memoria <= "00000";
 
+                    contador_clk <= 0;
+                    contador_segundos <= 0;
+                    esp_ok_recebido <= '0';
+
                     if botao_arm = '1' then
                         estado_atual <= ARMADO;
                     else
                         estado_atual <= DESARMADO;
                     end if;
 
+
                 when ARMADO =>
+                    contador_clk <= 0;
+                    contador_segundos <= 0;
+                    esp_ok_recebido <= '0';
+
                     if botao_arm = '0' then
                         estado_atual <= DESARMADO;
                         zona_memoria <= "00000";
@@ -75,12 +95,56 @@ begin
                         estado_atual <= ARMADO;
                     end if;
 
+
                 when DISPARO =>
                     if botao_arm = '0' then
                         estado_atual <= DESARMADO;
                         zona_memoria <= "00000";
+
+                        contador_clk <= 0;
+                        contador_segundos <= 0;
+                        esp_ok_recebido <= '0';
+
                     else
-                        estado_atual <= DISPARO;
+                        -- Se o ESP32 respondeu, registra confirmação
+                        if esp_ok = '1' then
+                            esp_ok_recebido <= '1';
+                            contador_clk <= 0;
+                            contador_segundos <= 0;
+
+                        -- Se ainda não recebeu esp_ok, conta até 5 segundos
+                        elsif esp_ok_recebido = '0' then
+
+                            if contador_segundos >= 5 then
+                                estado_atual <= RESET_ESP;
+                                contador_clk <= 0;
+                                contador_segundos <= 0;
+
+                            else
+                                if contador_clk = 99999999 then
+                                    contador_clk <= 0;
+                                    contador_segundos <= contador_segundos + 1;
+                                else
+                                    contador_clk <= contador_clk + 1;
+                                end if;
+                            end if;
+
+                        else
+                            estado_atual <= DISPARO;
+                        end if;
+                    end if;
+
+
+                when RESET_ESP =>
+                    if botao_arm = '0' then
+                        estado_atual <= DESARMADO;
+                        zona_memoria <= "00000";
+
+                        contador_clk <= 0;
+                        contador_segundos <= 0;
+                        esp_ok_recebido <= '0';
+                    else
+                        estado_atual <= RESET_ESP;
                     end if;
 
             end case;
@@ -88,7 +152,8 @@ begin
         end if;
     end process;
 
-    process(estado_atual, zona_memoria)
+
+    process(estado_atual, zona_memoria, esp_ok_recebido)
     begin
         sirene     <= '0';
         estrobo    <= '0';
@@ -103,14 +168,35 @@ begin
             when DESARMADO =>
                 display <= "0100001"; -- d
 
+
             when ARMADO =>
                 display <= "0001000"; -- A
+
 
             when DISPARO =>
                 display    <= "1000001"; -- U
                 sirene     <= '1';
                 estrobo    <= '1';
                 esp_alerta <= '1';
+                esp_reset  <= '0';
+
+                esp_zonas  <= zona_memoria;
+                leds_zona  <= zona_memoria;
+
+                -- Indicação visual de esp_ok recebido
+                -- Acende leds_zona[4] se o ESP32 confirmou
+                if esp_ok_recebido = '1' then
+                    leds_zona(4) <= '1';
+                end if;
+
+
+            when RESET_ESP =>
+                display    <= "1000001"; -- U
+                sirene     <= '1';
+                estrobo    <= '1';
+                esp_alerta <= '1';
+                esp_reset  <= '1';
+
                 esp_zonas  <= zona_memoria;
                 leds_zona  <= zona_memoria;
 

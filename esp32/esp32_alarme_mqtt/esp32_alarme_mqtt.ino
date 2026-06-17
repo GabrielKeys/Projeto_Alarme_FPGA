@@ -3,9 +3,10 @@
   Teste físico com sensores simulando zonas
 
   Estado atual:
-  - Zona 1: botão/reed simulado no GPIO32
+  - Sistema com estado ARMADO/DESARMADO via MQTT
+  - Zona 1: botão/reed no GPIO25
   - Zona 2: sensor IR no GPIO33
-  - Zona 3: PIR ignorado temporariamente
+  - Zona 3: PIR HC-SR501 no GPIO32 por leitura analógica
   - Zona 4: sensor ultrassônico HC-SR04
   - Zona 5: botão no GPIO12
   - Buzzer passivo/sirene no GPIO27
@@ -13,31 +14,54 @@
 
   Ligações:
   - Botão de alerta: GPIO26 -> botão -> GND
-  - Botões zonas 1 e 5: GPIO -> botão -> GND
-  - Sensor IR: OUT -> GPIO33
+
+  - Zona 1 reed/botão:
+      GPIO25 -> reed/botão -> GND
+
+  - Zona 2 sensor IR:
+      VCC -> 3V3
+      GND -> GND
+      OUT -> GPIO33
+
+  - Zona 3 PIR:
+      VCC -> 3V3
+      GND -> GND
+      OUT -> GPIO32
+
+  - Zona 5 botão:
+      GPIO12 -> botão -> GND
+
   - Buzzer passivo:
       um pino -> GPIO27
       outro pino -> GND
+
   - LED estrobo:
       GPIO13 -> resistor 220R -> perna maior do LED
       perna menor do LED -> GND
+
   - HC-SR04:
       VCC  -> VIN/5V
       GND  -> GND
       TRIG -> GPIO14
-      ECHO -> divisor com 2 resistores de 1k -> GPIO35
+      ECHO -> divisor com resistores -> GPIO35
 
   Divisor do ECHO:
       ECHO -> 1k -> GPIO35
-      GPIO35 -> 1k -> GND
+      GPIO35 -> 2k -> GND
+      Obs: se só tiver resistores de 1k, use dois de 1k em série para formar 2k.
+
+  MQTT:
+  - mackenzie/alarme/comando recebe:
+      armar
+      desarmar
 */
 
 #include <WiFi.h>
 #include <PubSubClient.h>
 
 // ===== CONFIGURAÇÕES DO WI-FI =====
-const char* ssid = "rede";
-const char* password = "senha";
+const char* ssid = "GabrielEsp";
+const char* password = "batata123";
 
 // ===== CONFIGURAÇÕES MQTT =====
 const char* mqtt_server = "broker.hivemq.com";
@@ -48,6 +72,7 @@ const char* topic_status   = "mackenzie/alarme/status";
 const char* topic_zona     = "mackenzie/alarme/zona";
 const char* topic_mensagem = "mackenzie/alarme/mensagem";
 const char* topic_esp_ok   = "mackenzie/alarme/esp_ok";
+const char* topic_comando  = "mackenzie/alarme/comando";
 
 WiFiClient espClient;
 PubSubClient client(espClient);
@@ -57,17 +82,23 @@ PubSubClient client(espClient);
 #define PIN_BUZZER      27
 #define PIN_ESTROBO     13
 
-#define PIN_ZONA_1      32
-#define PIN_ZONA_2      33
-#define PIN_ZONA_3      25
+#define PIN_ZONA_1      25   // Reed/botão
+#define PIN_ZONA_2      33   // Sensor IR
+#define PIN_ZONA_3      32   // PIR por leitura analógica
 
 #define PIN_ZONA_4_TRIG 14
 #define PIN_ZONA_4_ECHO 35
 
 #define PIN_ZONA_5      12
 
+// Limiar do PIR analógico
+// Como o sinal estava parado por volta de 3600,
+// usamos 3900 para evitar falso positivo.
+#define LIMIAR_PIR      3900
+
 int ultimaZona = 0;
 bool alertaProcessado = false;
+bool sistemaArmado = false;
 
 void setup() {
   Serial.begin(115200);
@@ -75,17 +106,24 @@ void setup() {
 
   pinMode(PIN_ESP_ALERTA, INPUT_PULLUP);
 
+  // Zona 1: reed/botão com INPUT_PULLUP
   pinMode(PIN_ZONA_1, INPUT_PULLUP);
+
+  // Zona 2: sensor IR
   pinMode(PIN_ZONA_2, INPUT_PULLUP);
 
-  // Zona 3/PIR ignorada temporariamente
-  pinMode(PIN_ZONA_3, INPUT);
+  // Zona 3: PIR por leitura analógica
+  // INPUT_PULLDOWN ajuda a evitar flutuação/falso positivo no GPIO32.
+  pinMode(PIN_ZONA_3, INPUT_PULLDOWN);
+  analogReadResolution(12);
+  analogSetPinAttenuation(PIN_ZONA_3, ADC_11db);
 
-  // Zona 4/HC-SR04
+  // Zona 4: HC-SR04
   pinMode(PIN_ZONA_4_TRIG, OUTPUT);
   pinMode(PIN_ZONA_4_ECHO, INPUT);
   digitalWrite(PIN_ZONA_4_TRIG, LOW);
 
+  // Zona 5: botão
   pinMode(PIN_ZONA_5, INPUT_PULLUP);
 
   // Buzzer passivo no ESP32
@@ -99,13 +137,18 @@ void setup() {
   conectarWiFi();
 
   client.setServer(mqtt_server, mqtt_port);
+  client.setCallback(callbackMQTT);
 
   Serial.println("ESP32 iniciado com MQTT.");
-  Serial.println("Zona 3/PIR ignorada temporariamente.");
+  Serial.println("Sistema inicia DESARMADO.");
+  Serial.println("Comandos MQTT: armar / desarmar");
+  Serial.println("Zona 1 reed/botao no GPIO25.");
+  Serial.println("Zona 2 IR no GPIO33.");
+  Serial.println("Zona 3 PIR analogico no GPIO32.");
   Serial.println("Zona 4 usando HC-SR04.");
+  Serial.println("Zona 5 botao no GPIO12.");
   Serial.println("Buzzer passivo no GPIO27.");
   Serial.println("LED estrobo no GPIO13.");
-  Serial.println("Aperte uma zona e depois aperte o botao de alerta.");
 }
 
 void loop() {
@@ -118,6 +161,14 @@ void loop() {
   int alerta = digitalRead(PIN_ESP_ALERTA);
 
   if (alerta == LOW && alertaProcessado == false) {
+
+    if (sistemaArmado == false) {
+      Serial.println("Alerta ignorado: sistema desarmado.");
+      client.publish(topic_mensagem, "Alerta ignorado: sistema desarmado");
+      alertaProcessado = true;
+      return;
+    }
+
     ultimaZona = identificarZona();
 
     if (ultimaZona > 0) {
@@ -137,8 +188,37 @@ void loop() {
     }
   }
 
+  // Libera novo alerta quando soltar o botão de alerta
   if (alerta == HIGH) {
     alertaProcessado = false;
+  }
+}
+
+void callbackMQTT(char* topic, byte* payload, unsigned int length) {
+  String mensagem = "";
+
+  for (unsigned int i = 0; i < length; i++) {
+    mensagem += (char)payload[i];
+  }
+
+  mensagem.trim();
+  mensagem.toLowerCase();
+
+  Serial.print("Comando MQTT recebido: ");
+  Serial.println(mensagem);
+
+  if (mensagem == "armar") {
+    sistemaArmado = true;
+    client.publish(topic_status, "armado");
+    client.publish(topic_mensagem, "Sistema armado via MQTT");
+    Serial.println("Sistema ARMADO.");
+  }
+
+  if (mensagem == "desarmar") {
+    sistemaArmado = false;
+    client.publish(topic_status, "desarmado");
+    client.publish(topic_mensagem, "Sistema desarmado via MQTT");
+    Serial.println("Sistema DESARMADO.");
   }
 }
 
@@ -185,7 +265,16 @@ void reconectarMQTT() {
 
     if (client.connect(clientId.c_str())) {
       Serial.println("conectado.");
-      client.publish(topic_status, "ESP32 conectado");
+
+      client.subscribe(topic_comando);
+
+      if (sistemaArmado) {
+        client.publish(topic_status, "armado");
+        client.publish(topic_mensagem, "ESP32 reconectado. Sistema armado.");
+      } else {
+        client.publish(topic_status, "desarmado");
+        client.publish(topic_mensagem, "ESP32 conectado. Sistema desarmado.");
+      }
     } else {
       Serial.print("falhou, rc=");
       Serial.print(client.state());
@@ -196,17 +285,44 @@ void reconectarMQTT() {
 }
 
 int identificarZona() {
+  // Zona 1: reed/botão
   if (digitalRead(PIN_ZONA_1) == LOW) return 1;
+
+  // Zona 2: sensor IR
   if (digitalRead(PIN_ZONA_2) == LOW) return 2;
 
-  // Zona 3/PIR ignorada temporariamente
-  // if (digitalRead(PIN_ZONA_3) == HIGH) return 3;
+  // Zona 3: PIR por leitura analógica
+  if (zona3PIRViolada()) return 3;
 
+  // Zona 4: ultrassônico
   if (zona4UltrassomViolada()) return 4;
 
+  // Zona 5: botão
   if (digitalRead(PIN_ZONA_5) == LOW) return 5;
 
   return 0;
+}
+
+bool zona3PIRViolada() {
+  long soma = 0;
+
+  // Faz média para reduzir ruído do ADC
+  for (int i = 0; i < 10; i++) {
+    soma += analogRead(PIN_ZONA_3);
+    delay(2);
+  }
+
+  int valorPIR = soma / 10;
+
+  Serial.print("PIR analogico medio: ");
+  Serial.println(valorPIR);
+
+  if (valorPIR > LIMIAR_PIR) {
+    Serial.println("Zona 3 violada. PIR detectou movimento.");
+    return true;
+  }
+
+  return false;
 }
 
 bool zona4UltrassomViolada() {
@@ -225,7 +341,7 @@ bool zona4UltrassomViolada() {
 
   float distancia = duracao * 0.034 / 2.0;
 
-  if (distancia > 0 && distancia < 30) {
+  if (distancia > 0 && distancia < 15) {
     Serial.print("Zona 4 violada. Distancia: ");
     Serial.print(distancia);
     Serial.println(" cm");
@@ -271,4 +387,7 @@ void publicarMQTT(int zona, String mensagem) {
   client.publish(topic_esp_ok, "ok");
 
   Serial.println("Dados publicados via MQTT.");
+  Serial.print("Zona: ");
+  Serial.println(zona);
+  Serial.println(mensagem);
 }
