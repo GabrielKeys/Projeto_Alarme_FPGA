@@ -51,15 +51,21 @@
 */
 
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
+#include <HTTPClient.h>
 #include <PubSubClient.h>
 
 // ===== CONFIGURACOES DO WI-FI =====
 const char* ssid = "GabrielEsp";
 const char* password = "batata123";
 
-// ===== CONFIGURACOES MQTT =====
-const char* mqtt_server = "broker.hivemq.com";
-const int mqtt_port = 1883;
+// ===== CONFIGURACOES MQTT (broker privado, TLS, com autenticacao) =====
+// ### PREENCHA AQUI ### com os dados do SEU cluster gratuito na HiveMQ Cloud
+// (console.hivemq.cloud -> Create cluster -> Access Management -> Add credentials)
+const char* mqtt_server = "SEU-CLUSTER.s1.eu.hivemq.cloud"; // host do seu cluster
+const int   mqtt_port   = 8883;                              // 8883 = MQTT com TLS
+const char* mqtt_user   = "SEU_USUARIO_MQTT";
+const char* mqtt_pass   = "SUA_SENHA_MQTT";
 
 // Topicos MQTT
 const char* topic_status   = "mackenzie/alarme/status";
@@ -68,7 +74,14 @@ const char* topic_mensagem = "mackenzie/alarme/mensagem";
 const char* topic_esp_ok   = "mackenzie/alarme/esp_ok";
 const char* topic_comando  = "mackenzie/alarme/comando";
 
-WiFiClient espClient;
+// ===== CONFIGURACOES DO ALERTA POR WHATSAPP (CallMeBot, gratuito) =====
+// ### PREENCHA AQUI ### depois de cadastrar seu numero no CallMeBot
+// (mande "I allow callmebot to send me messages" pelo WhatsApp para
+// +34 644 59 71 67 e ele responde com o apikey)
+const char* whatsapp_numero  = "55119XXXXXXXX"; // com codigo do pais, sem + nem espaco
+const char* whatsapp_apikey  = "SEU_APIKEY_CALLMEBOT";
+
+WiFiClientSecure espClient;
 PubSubClient client(espClient);
 
 // ===== PINOS DOS SENSORES (ESP32 le o mundo real) =====
@@ -166,6 +179,15 @@ void setup() {
 
   conectarWiFi();
 
+  // TLS sem validar a cadeia de certificado do broker (setInsecure).
+  // O trafego continua criptografado e o login (usuario/senha) continua
+  // exigido pelo broker, o que ja resolve o problema principal (qualquer
+  // um podia publicar/ler no broker publico antigo sem autenticacao).
+  // Se quiser validacao completa da cadeia, pegue o certificado exato
+  // do seu cluster no painel da HiveMQ Cloud e troque por
+  // espClient.setCACert(...).
+  espClient.setInsecure();
+
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callbackMQTT);
 
@@ -199,6 +221,7 @@ void loop() {
       Serial.println(mensagem);
 
       publicarMQTT(zona, mensagem);
+      enviarWhatsApp(mensagem);
       acionarContramedidas();
 
       digitalWrite(PIN_ESP_OK_OUT, HIGH); // confirma recebimento para a FPGA
@@ -296,7 +319,7 @@ void reconectarMQTT() {
     String clientId = "ESP32_Alarme_FPGA_";
     clientId += String(random(0xffff), HEX);
 
-    if (client.connect(clientId.c_str())) {
+    if (client.connect(clientId.c_str(), mqtt_user, mqtt_pass)) {
       Serial.println("conectado.");
       client.subscribe(topic_comando);
       client.publish(topic_mensagem, "ESP32 reconectado ao broker MQTT");
@@ -396,4 +419,30 @@ void publicarMQTT(int zona, String mensagem) {
   Serial.print("Zona confirmada pela FPGA: ");
   Serial.println(zona);
   Serial.println(mensagem);
+}
+
+// Segundo canal de alerta, independente do dashboard/MQTT, como o
+// enunciado pede (alem da nuvem, um contato direto com o usuario).
+void enviarWhatsApp(String mensagem) {
+  WiFiClientSecure httpClient;
+  httpClient.setInsecure(); // mesma logica do MQTT: criptografado, sem pin de certificado
+
+  HTTPClient https;
+
+  String textoCodificado = mensagem;
+  textoCodificado.replace(" ", "%20");
+  textoCodificado.replace(":", "%3A");
+
+  String url = "https://api.callmebot.com/whatsapp.php?phone=" + String(whatsapp_numero) +
+               "&text=" + textoCodificado +
+               "&apikey=" + String(whatsapp_apikey);
+
+  if (https.begin(httpClient, url)) {
+    int codigo = https.GET();
+    Serial.print("CallMeBot HTTP: ");
+    Serial.println(codigo);
+    https.end();
+  } else {
+    Serial.println("Falha ao iniciar requisicao HTTPS para o CallMeBot.");
+  }
 }
