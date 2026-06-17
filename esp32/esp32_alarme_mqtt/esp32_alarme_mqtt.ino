@@ -1,73 +1,67 @@
 /*
-  Projeto: Sistema de Alarme Perimétrico com FPGA + ESP32
-  Teste físico com sensores simulando zonas
+  Projeto: Sistema de Alarme Perimetrico com FPGA + ESP32
+  Loop fechado FPGA <-> ESP32
 
-  Estado atual:
-  - Sistema com estado ARMADO/DESARMADO via MQTT
-  - Zona 1: botão/reed no GPIO25
-  - Zona 2: sensor IR no GPIO33
-  - Zona 3: PIR HC-SR501 no GPIO32 por leitura analógica
-  - Zona 4: sensor ultrassônico HC-SR04
-  - Zona 5: botão no GPIO12
-  - Buzzer passivo/sirene no GPIO27
-  - LED estroboscópico no GPIO13
+  Papel de cada lado, pra nao duplicar decisao:
+  - ESP32: le os sensores reais (reed, IR, PIR, ultrassonico, botao) e
+    espelha o estado de cada zona pra FPGA. So isso. Nao decide mais
+    sozinho se houve alarme.
+  - FPGA (alarme_top.vhd): recebe as 5 zonas, roda a MEF com o estado
+    CONTAGEM (filtro de falso-positivo) e so quando confirma o disparo
+    avisa o ESP32 por esp_alerta + esp_zonas, dizendo exatamente qual
+    zona validou.
+  - ESP32: ao ver esp_alerta, le esp_zonas (a decisao da FPGA, nao mais
+    uma releitura dos proprios sensores), publica no MQTT, aciona a
+    sirene/estrobo fisicos e devolve esp_ok pra FPGA.
 
-  Ligações:
-  - Botão de alerta: GPIO26 -> botão -> GND
+  Ligacoes dos SENSORES (sem mudanca):
+  - Zona 1 reed/botao: GPIO25 -> reed/botao -> GND
+  - Zona 2 sensor IR: VCC->3V3, GND->GND, OUT->GPIO33
+  - Zona 3 PIR: VCC->3V3, GND->GND, OUT->GPIO32 (leitura analogica)
+  - Zona 4 HC-SR04: VCC->VIN/5V, GND->GND, TRIG->GPIO14, ECHO->divisor->GPIO35
+      Divisor do ECHO: ECHO -> 1k -> GPIO35 -> 2k -> GND
+  - Zona 5 botao: GPIO12 -> botao -> GND
+  - Buzzer passivo: GPIO27 / GND
+  - LED estrobo: GPIO13 -> resistor 220R -> LED -> GND
 
-  - Zona 1 reed/botão:
-      GPIO25 -> reed/botão -> GND
+  Ligacoes NOVAS com a FPGA (Basys 3), todas em logica 3V3, GND comum
+  obrigatorio entre as duas placas:
 
-  - Zona 2 sensor IR:
-      VCC -> 3V3
-      GND -> GND
-      OUT -> GPIO33
+  Sentido FPGA -> ESP32 (a central avisa o ESP32):
+    PMOD JA1 (esp_alerta)     -> GPIO26 (ja existia)
+    PMOD JB1 (esp_zonas[0])   -> GPIO21
+    PMOD JB2 (esp_zonas[1])   -> GPIO22
+    PMOD JB3 (esp_zonas[2])   -> GPIO23
+    PMOD JB4 (esp_zonas[3])   -> GPIO34
+    PMOD JB7 (esp_zonas[4])   -> GPIO36
+    PMOD JA2 (esp_reset)      -> GPIO39
 
-  - Zona 3 PIR:
-      VCC -> 3V3
-      GND -> GND
-      OUT -> GPIO32
-
-  - Zona 5 botão:
-      GPIO12 -> botão -> GND
-
-  - Buzzer passivo:
-      um pino -> GPIO27
-      outro pino -> GND
-
-  - LED estrobo:
-      GPIO13 -> resistor 220R -> perna maior do LED
-      perna menor do LED -> GND
-
-  - HC-SR04:
-      VCC  -> VIN/5V
-      GND  -> GND
-      TRIG -> GPIO14
-      ECHO -> divisor com resistores -> GPIO35
-
-  Divisor do ECHO:
-      ECHO -> 1k -> GPIO35
-      GPIO35 -> 2k -> GND
-      Obs: se só tiver resistores de 1k, use dois de 1k em série para formar 2k.
+  Sentido ESP32 -> FPGA (o ESP32 manda o espelho dos sensores):
+    GPIO4  -> PMOD JC1 (zona1)
+    GPIO5  -> PMOD JC2 (zona2)
+    GPIO16 -> PMOD JC3 (zona3)
+    GPIO17 -> PMOD JC4 (zona4)
+    GPIO18 -> PMOD JC7 (zona5)
+    GPIO19 -> PMOD JA10 (esp_ok)
 
   MQTT:
-  - mackenzie/alarme/comando recebe:
-      armar
-      desarmar
+  - mackenzie/alarme/comando recebe: armar / desarmar
+    (hoje so atualiza status no dashboard; quem de fato arma/desarma
+    a central e o switch fisico botao_arm na FPGA)
 */
 
 #include <WiFi.h>
 #include <PubSubClient.h>
 
-// ===== CONFIGURAÇÕES DO WI-FI =====
+// ===== CONFIGURACOES DO WI-FI =====
 const char* ssid = "GabrielEsp";
 const char* password = "batata123";
 
-// ===== CONFIGURAÇÕES MQTT =====
+// ===== CONFIGURACOES MQTT =====
 const char* mqtt_server = "broker.hivemq.com";
 const int mqtt_port = 1883;
 
-// Tópicos MQTT
+// Topicos MQTT
 const char* topic_status   = "mackenzie/alarme/status";
 const char* topic_zona     = "mackenzie/alarme/zona";
 const char* topic_mensagem = "mackenzie/alarme/mensagem";
@@ -77,78 +71,107 @@ const char* topic_comando  = "mackenzie/alarme/comando";
 WiFiClient espClient;
 PubSubClient client(espClient);
 
-// ===== PINOS ESP32 =====
-#define PIN_ESP_ALERTA  26
-#define PIN_BUZZER      27
-#define PIN_ESTROBO     13
-
-#define PIN_ZONA_1      25   // Reed/botão
+// ===== PINOS DOS SENSORES (ESP32 le o mundo real) =====
+#define PIN_ZONA_1      25   // Reed/botao
 #define PIN_ZONA_2      33   // Sensor IR
-#define PIN_ZONA_3      32   // PIR por leitura analógica
+#define PIN_ZONA_3      32   // PIR por leitura analogica
 
 #define PIN_ZONA_4_TRIG 14
 #define PIN_ZONA_4_ECHO 35
 
 #define PIN_ZONA_5      12
 
-// Limiar do PIR analógico
+// ===== PINOS DOS ATUADORES LOCAIS =====
+#define PIN_BUZZER      27
+#define PIN_ESTROBO     13
+
+// ===== PINOS DA COMUNICACAO COM A FPGA =====
+
+// FPGA -> ESP32
+#define PIN_ESP_ALERTA     26   // esp_alerta (PMOD JA1)
+#define PIN_FPGA_ZONA0     21   // esp_zonas[0] = zona1 (PMOD JB1)
+#define PIN_FPGA_ZONA1     22   // esp_zonas[1] = zona2 (PMOD JB2)
+#define PIN_FPGA_ZONA2     23   // esp_zonas[2] = zona3 (PMOD JB3)
+#define PIN_FPGA_ZONA3     34   // esp_zonas[3] = zona4 (PMOD JB4)
+#define PIN_FPGA_ZONA4     36   // esp_zonas[4] = zona5 (PMOD JB7)
+#define PIN_ESP_RESET_IN   39   // esp_reset (PMOD JA2)
+
+// ESP32 -> FPGA
+#define PIN_ZONA1_OUT      4    // zona1 (PMOD JC1)
+#define PIN_ZONA2_OUT      5    // zona2 (PMOD JC2)
+#define PIN_ZONA3_OUT      16   // zona3 (PMOD JC3)
+#define PIN_ZONA4_OUT      17   // zona4 (PMOD JC4)
+#define PIN_ZONA5_OUT      18   // zona5 (PMOD JC7)
+#define PIN_ESP_OK_OUT     19   // esp_ok (PMOD JA10)
+
+// Limiar do PIR analogico
 // Como o sinal estava parado por volta de 3600,
 // usamos 3900 para evitar falso positivo.
 #define LIMIAR_PIR      3900
 
-int ultimaZona = 0;
 bool alertaProcessado = false;
-bool sistemaArmado = false;
 
 void setup() {
   Serial.begin(115200);
   delay(1000);
 
-  pinMode(PIN_ESP_ALERTA, INPUT_PULLUP);
-
-  // Zona 1: reed/botão com INPUT_PULLUP
+  // ----- Sensores -----
   pinMode(PIN_ZONA_1, INPUT_PULLUP);
-
-  // Zona 2: sensor IR
   pinMode(PIN_ZONA_2, INPUT_PULLUP);
 
-  // Zona 3: PIR por leitura analógica
-  // INPUT_PULLDOWN ajuda a evitar flutuação/falso positivo no GPIO32.
   pinMode(PIN_ZONA_3, INPUT_PULLDOWN);
   analogReadResolution(12);
   analogSetPinAttenuation(PIN_ZONA_3, ADC_11db);
 
-  // Zona 4: HC-SR04
   pinMode(PIN_ZONA_4_TRIG, OUTPUT);
   pinMode(PIN_ZONA_4_ECHO, INPUT);
   digitalWrite(PIN_ZONA_4_TRIG, LOW);
 
-  // Zona 5: botão
   pinMode(PIN_ZONA_5, INPUT_PULLUP);
 
-  // Buzzer passivo no ESP32
+  // ----- Atuadores locais -----
   ledcAttach(PIN_BUZZER, 2000, 8);
   ledcWriteTone(PIN_BUZZER, 0);
 
-  // LED estrobo
   pinMode(PIN_ESTROBO, OUTPUT);
   digitalWrite(PIN_ESTROBO, LOW);
+
+  // ----- Entradas vindas da FPGA -----
+  // esp_alerta e esp_zonas/esp_reset sao sempre dirigidos pela FPGA
+  // (saida ativa, push-pull), entao INPUT simples basta. Uso pulldown
+  // so como seguranca caso a FPGA ainda nao tenha configurado o
+  // bitstream no momento em que o ESP32 liga.
+  pinMode(PIN_ESP_ALERTA, INPUT_PULLDOWN);
+  pinMode(PIN_FPGA_ZONA0, INPUT_PULLDOWN);
+  pinMode(PIN_FPGA_ZONA1, INPUT_PULLDOWN);
+  pinMode(PIN_FPGA_ZONA2, INPUT_PULLDOWN);
+  pinMode(PIN_FPGA_ZONA3, INPUT_PULLDOWN);
+  pinMode(PIN_FPGA_ZONA4, INPUT_PULLDOWN);
+  pinMode(PIN_ESP_RESET_IN, INPUT_PULLDOWN);
+
+  // ----- Saidas para a FPGA -----
+  pinMode(PIN_ZONA1_OUT, OUTPUT);
+  pinMode(PIN_ZONA2_OUT, OUTPUT);
+  pinMode(PIN_ZONA3_OUT, OUTPUT);
+  pinMode(PIN_ZONA4_OUT, OUTPUT);
+  pinMode(PIN_ZONA5_OUT, OUTPUT);
+  pinMode(PIN_ESP_OK_OUT, OUTPUT);
+
+  digitalWrite(PIN_ZONA1_OUT, LOW);
+  digitalWrite(PIN_ZONA2_OUT, LOW);
+  digitalWrite(PIN_ZONA3_OUT, LOW);
+  digitalWrite(PIN_ZONA4_OUT, LOW);
+  digitalWrite(PIN_ZONA5_OUT, LOW);
+  digitalWrite(PIN_ESP_OK_OUT, LOW);
 
   conectarWiFi();
 
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callbackMQTT);
 
-  Serial.println("ESP32 iniciado com MQTT.");
-  Serial.println("Sistema inicia DESARMADO.");
-  Serial.println("Comandos MQTT: armar / desarmar");
-  Serial.println("Zona 1 reed/botao no GPIO25.");
-  Serial.println("Zona 2 IR no GPIO33.");
-  Serial.println("Zona 3 PIR analogico no GPIO32.");
-  Serial.println("Zona 4 usando HC-SR04.");
-  Serial.println("Zona 5 botao no GPIO12.");
-  Serial.println("Buzzer passivo no GPIO27.");
-  Serial.println("LED estrobo no GPIO13.");
+  Serial.println("ESP32 iniciado.");
+  Serial.println("Espelhando sensores para a FPGA via PMOD JC.");
+  Serial.println("Lendo decisao da FPGA via PMOD JB (esp_zonas) e JA1 (esp_alerta).");
 }
 
 void loop() {
@@ -158,39 +181,51 @@ void loop() {
 
   client.loop();
 
+  // Sempre espelha o estado real dos sensores para a FPGA.
+  // Quem decide se isso configura um disparo e a MEF na FPGA.
+  espelharZonasParaFPGA();
+
+  // ----- Le a decisao da FPGA -----
   int alerta = digitalRead(PIN_ESP_ALERTA);
 
-  if (alerta == LOW && alertaProcessado == false) {
+  if (alerta == HIGH && alertaProcessado == false) {
 
-    if (sistemaArmado == false) {
-      Serial.println("Alerta ignorado: sistema desarmado.");
-      client.publish(topic_mensagem, "Alerta ignorado: sistema desarmado");
-      alertaProcessado = true;
-      return;
-    }
+    int zona = lerZonaConfirmadaPelaFPGA();
 
-    ultimaZona = identificarZona();
+    if (zona > 0) {
+      String mensagem = montarMensagem(zona);
 
-    if (ultimaZona > 0) {
-      String mensagem = montarMensagem(ultimaZona);
-
-      Serial.println("ALERTA RECEBIDO");
+      Serial.println("ALERTA CONFIRMADO PELA FPGA (pos estado CONTAGEM)");
       Serial.println(mensagem);
 
-      publicarMQTT(ultimaZona, mensagem);
-
+      publicarMQTT(zona, mensagem);
       acionarContramedidas();
 
-      alertaProcessado = true;
+      digitalWrite(PIN_ESP_OK_OUT, HIGH); // confirma recebimento para a FPGA
     } else {
-      Serial.println("Alerta acionado, mas nenhuma zona foi detectada.");
-      alertaProcessado = true;
+      // esp_alerta subiu mas esp_zonas chegou 00000: normalmente
+      // fiacao do PMOD JB solta ou GND nao comum entre as placas.
+      Serial.println("esp_alerta ativo, porem esp_zonas = 00000. Checar fiacao do PMOD JB.");
+      client.publish(topic_mensagem, "Alerta da FPGA sem zona identificada - checar fiacao");
     }
+
+    alertaProcessado = true;
   }
 
-  // Libera novo alerta quando soltar o botão de alerta
-  if (alerta == HIGH) {
+  // Libera novo alerta e baixa o esp_ok quando a FPGA volta a zerar esp_alerta
+  if (alerta == LOW) {
     alertaProcessado = false;
+    digitalWrite(PIN_ESP_OK_OUT, LOW);
+  }
+
+  // ----- Watchdog: a FPGA pede reset porque nao recebeu esp_ok a tempo -----
+  if (digitalRead(PIN_ESP_RESET_IN) == HIGH) {
+    Serial.println("Reset solicitado pela FPGA (watchdog). Reiniciando ESP32...");
+    if (client.connected()) {
+      client.publish(topic_mensagem, "ESP32 reiniciado por timeout do watchdog da FPGA");
+    }
+    delay(200);
+    ESP.restart();
   }
 }
 
@@ -207,18 +242,16 @@ void callbackMQTT(char* topic, byte* payload, unsigned int length) {
   Serial.print("Comando MQTT recebido: ");
   Serial.println(mensagem);
 
+  // Observacao: quem de fato arma/desarma a central e o switch botao_arm
+  // na FPGA. Isso aqui so atualiza o status mostrado no dashboard.
   if (mensagem == "armar") {
-    sistemaArmado = true;
     client.publish(topic_status, "armado");
-    client.publish(topic_mensagem, "Sistema armado via MQTT");
-    Serial.println("Sistema ARMADO.");
+    client.publish(topic_mensagem, "Comando armar recebido (arme tambem o switch na FPGA)");
   }
 
   if (mensagem == "desarmar") {
-    sistemaArmado = false;
     client.publish(topic_status, "desarmado");
-    client.publish(topic_mensagem, "Sistema desarmado via MQTT");
-    Serial.println("Sistema DESARMADO.");
+    client.publish(topic_mensagem, "Comando desarmar recebido (desarme tambem o switch na FPGA)");
   }
 }
 
@@ -265,16 +298,8 @@ void reconectarMQTT() {
 
     if (client.connect(clientId.c_str())) {
       Serial.println("conectado.");
-
       client.subscribe(topic_comando);
-
-      if (sistemaArmado) {
-        client.publish(topic_status, "armado");
-        client.publish(topic_mensagem, "ESP32 reconectado. Sistema armado.");
-      } else {
-        client.publish(topic_status, "desarmado");
-        client.publish(topic_mensagem, "ESP32 conectado. Sistema desarmado.");
-      }
+      client.publish(topic_mensagem, "ESP32 reconectado ao broker MQTT");
     } else {
       Serial.print("falhou, rc=");
       Serial.print(client.state());
@@ -284,29 +309,25 @@ void reconectarMQTT() {
   }
 }
 
-int identificarZona() {
-  // Zona 1: reed/botão
-  if (digitalRead(PIN_ZONA_1) == LOW) return 1;
+// ===== Leitura dos sensores reais e espelho para a FPGA =====
 
-  // Zona 2: sensor IR
-  if (digitalRead(PIN_ZONA_2) == LOW) return 2;
+void espelharZonasParaFPGA() {
+  bool z1 = (digitalRead(PIN_ZONA_1) == LOW);   // reed/botao ativo em LOW
+  bool z2 = (digitalRead(PIN_ZONA_2) == LOW);   // IR ativo em LOW
+  bool z3 = zona3PIRViolada();
+  bool z4 = zona4UltrassomViolada();
+  bool z5 = (digitalRead(PIN_ZONA_5) == LOW);   // botao ativo em LOW
 
-  // Zona 3: PIR por leitura analógica
-  if (zona3PIRViolada()) return 3;
-
-  // Zona 4: ultrassônico
-  if (zona4UltrassomViolada()) return 4;
-
-  // Zona 5: botão
-  if (digitalRead(PIN_ZONA_5) == LOW) return 5;
-
-  return 0;
+  digitalWrite(PIN_ZONA1_OUT, z1 ? HIGH : LOW);
+  digitalWrite(PIN_ZONA2_OUT, z2 ? HIGH : LOW);
+  digitalWrite(PIN_ZONA3_OUT, z3 ? HIGH : LOW);
+  digitalWrite(PIN_ZONA4_OUT, z4 ? HIGH : LOW);
+  digitalWrite(PIN_ZONA5_OUT, z5 ? HIGH : LOW);
 }
 
 bool zona3PIRViolada() {
   long soma = 0;
 
-  // Faz média para reduzir ruído do ADC
   for (int i = 0; i < 10; i++) {
     soma += analogRead(PIN_ZONA_3);
     delay(2);
@@ -314,15 +335,7 @@ bool zona3PIRViolada() {
 
   int valorPIR = soma / 10;
 
-  Serial.print("PIR analogico medio: ");
-  Serial.println(valorPIR);
-
-  if (valorPIR > LIMIAR_PIR) {
-    Serial.println("Zona 3 violada. PIR detectou movimento.");
-    return true;
-  }
-
-  return false;
+  return (valorPIR > LIMIAR_PIR);
 }
 
 bool zona4UltrassomViolada() {
@@ -341,38 +354,31 @@ bool zona4UltrassomViolada() {
 
   float distancia = duracao * 0.034 / 2.0;
 
-  if (distancia > 0 && distancia < 15) {
-    Serial.print("Zona 4 violada. Distancia: ");
-    Serial.print(distancia);
-    Serial.println(" cm");
-    return true;
-  }
+  return (distancia > 0 && distancia < 15);
+}
 
-  return false;
+// ===== Leitura da decisao da FPGA (esp_zonas) =====
+
+int lerZonaConfirmadaPelaFPGA() {
+  // Mesma ordem do VHDL: esp_zonas(0)=zona1 ... esp_zonas(4)=zona5
+  if (digitalRead(PIN_FPGA_ZONA0) == HIGH) return 1;
+  if (digitalRead(PIN_FPGA_ZONA1) == HIGH) return 2;
+  if (digitalRead(PIN_FPGA_ZONA2) == HIGH) return 3;
+  if (digitalRead(PIN_FPGA_ZONA3) == HIGH) return 4;
+  if (digitalRead(PIN_FPGA_ZONA4) == HIGH) return 5;
+  return 0;
 }
 
 String montarMensagem(int zona) {
   String local = "";
 
   switch (zona) {
-    case 1:
-      local = "Porta principal";
-      break;
-    case 2:
-      local = "Janela lateral";
-      break;
-    case 3:
-      local = "Area interna";
-      break;
-    case 4:
-      local = "Area externa";
-      break;
-    case 5:
-      local = "Area critica";
-      break;
-    default:
-      local = "Desconhecida";
-      break;
+    case 1: local = "Porta principal"; break;
+    case 2: local = "Janela lateral";   break;
+    case 3: local = "Area interna";     break;
+    case 4: local = "Area externa";     break;
+    case 5: local = "Area critica";     break;
+    default: local = "Desconhecida";    break;
   }
 
   return "ALERTA: Zona " + String(zona) + " violada - " + local;
@@ -387,7 +393,7 @@ void publicarMQTT(int zona, String mensagem) {
   client.publish(topic_esp_ok, "ok");
 
   Serial.println("Dados publicados via MQTT.");
-  Serial.print("Zona: ");
+  Serial.print("Zona confirmada pela FPGA: ");
   Serial.println(zona);
   Serial.println(mensagem);
 }
