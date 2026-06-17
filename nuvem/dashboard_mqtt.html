@@ -325,16 +325,14 @@
   </div>
 
   <script>
-    // ### PREENCHA AQUI ### com a config do SEU projeto Firebase
-    // (console.firebase.google.com -> criar projeto -> Firestore Database
-    // -> modo de produção -> Configurações do projeto -> "Seus apps" -> Web)
+    // Config do projeto Firebase (projetoalarmefpga)
     const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
-      authDomain: "SEU_PROJETO.firebaseapp.com",
-      projectId: "SEU_PROJETO",
-      storageBucket: "SEU_PROJETO.appspot.com",
-      messagingSenderId: "SEU_SENDER_ID",
-      appId: "SEU_APP_ID"
+      apiKey: "AIzaSyCx6GYoqLnY2xUe7uKMjje68USzHldRTIM",
+      authDomain: "projetoalarmefpga.firebaseapp.com",
+      projectId: "projetoalarmefpga",
+      storageBucket: "projetoalarmefpga.firebasestorage.app",
+      messagingSenderId: "1071848733886",
+      appId: "1:1071848733886:web:b54b70b239d827157232ef"
     };
 
     firebase.initializeApp(firebaseConfig);
@@ -428,9 +426,9 @@
   </script>
 
   <script>
-    const broker = "wss://SEU-CLUSTER.s1.eu.hivemq.cloud:8884/mqtt";
-    const mqttUser = "SEU_USUARIO_MQTT";
-    const mqttPass = "SUA_SENHA_MQTT";
+    const broker = "wss://ec05553814694e298758239a3dad8864.s1.eu.hivemq.cloud:8884/mqtt";
+    const mqttUser = "Polegato";
+    const mqttPass = "Polegato1";
 
     const topicStatus = "mackenzie/alarme/status";
     const topicZona = "mackenzie/alarme/zona";
