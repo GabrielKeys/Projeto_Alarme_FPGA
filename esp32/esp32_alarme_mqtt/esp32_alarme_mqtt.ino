@@ -4,6 +4,7 @@
 
   Estado atual:
   - Sistema com estado ARMADO/DESARMADO via MQTT
+  - Botão secreto físico no GPIO5
   - Zona 1: botão/reed no GPIO25
   - Zona 2: sensor IR no GPIO33
   - Zona 3: PIR HC-SR501 no GPIO32 por leitura analógica
@@ -13,7 +14,11 @@
   - LED estroboscópico no GPIO13
 
   Ligações:
-  - Botão de alerta: GPIO26 -> botão -> GND
+  - Botão secreto:
+      GPIO5 -> botão -> GND
+
+  - Botão de alerta:
+      GPIO26 -> botão -> GND
 
   - Zona 1 reed/botão:
       GPIO25 -> reed/botão -> GND
@@ -60,8 +65,8 @@
 #include <PubSubClient.h>
 
 // ===== CONFIGURAÇÕES DO WI-FI =====
-const char* ssid = "GabrielEsp";
-const char* password = "batata123";
+const char* ssid = "";
+const char* password = "";
 
 // ===== CONFIGURAÇÕES MQTT =====
 const char* mqtt_server = "broker.hivemq.com";
@@ -78,59 +83,55 @@ WiFiClient espClient;
 PubSubClient client(espClient);
 
 // ===== PINOS ESP32 =====
+#define PIN_BOTAO_SECRETO 5
+
 #define PIN_ESP_ALERTA  26
 #define PIN_BUZZER      27
 #define PIN_ESTROBO     13
 
-#define PIN_ZONA_1      25   // Reed/botão
-#define PIN_ZONA_2      33   // Sensor IR
-#define PIN_ZONA_3      32   // PIR por leitura analógica
+#define PIN_ZONA_1      25
+#define PIN_ZONA_2      33
+#define PIN_ZONA_3      32
 
 #define PIN_ZONA_4_TRIG 14
 #define PIN_ZONA_4_ECHO 35
 
 #define PIN_ZONA_5      12
 
-// Limiar do PIR analógico
-// Como o sinal estava parado por volta de 3600,
-// usamos 3900 para evitar falso positivo.
 #define LIMIAR_PIR      3900
 
 int ultimaZona = 0;
 bool alertaProcessado = false;
 bool sistemaArmado = false;
 
+// Controle do botão secreto
+bool ultimoEstadoBotaoSecreto = HIGH;
+unsigned long ultimoTempoBotaoSecreto = 0;
+const unsigned long debounceBotaoSecreto = 250;
+
 void setup() {
   Serial.begin(115200);
   delay(1000);
 
+  pinMode(PIN_BOTAO_SECRETO, INPUT_PULLUP);
   pinMode(PIN_ESP_ALERTA, INPUT_PULLUP);
 
-  // Zona 1: reed/botão com INPUT_PULLUP
   pinMode(PIN_ZONA_1, INPUT_PULLUP);
-
-  // Zona 2: sensor IR
   pinMode(PIN_ZONA_2, INPUT_PULLUP);
 
-  // Zona 3: PIR por leitura analógica
-  // INPUT_PULLDOWN ajuda a evitar flutuação/falso positivo no GPIO32.
   pinMode(PIN_ZONA_3, INPUT_PULLDOWN);
   analogReadResolution(12);
   analogSetPinAttenuation(PIN_ZONA_3, ADC_11db);
 
-  // Zona 4: HC-SR04
   pinMode(PIN_ZONA_4_TRIG, OUTPUT);
   pinMode(PIN_ZONA_4_ECHO, INPUT);
   digitalWrite(PIN_ZONA_4_TRIG, LOW);
 
-  // Zona 5: botão
   pinMode(PIN_ZONA_5, INPUT_PULLUP);
 
-  // Buzzer passivo no ESP32
   ledcAttach(PIN_BUZZER, 2000, 8);
   ledcWriteTone(PIN_BUZZER, 0);
 
-  // LED estrobo
   pinMode(PIN_ESTROBO, OUTPUT);
   digitalWrite(PIN_ESTROBO, LOW);
 
@@ -141,6 +142,7 @@ void setup() {
 
   Serial.println("ESP32 iniciado com MQTT.");
   Serial.println("Sistema inicia DESARMADO.");
+  Serial.println("Botao secreto no GPIO5.");
   Serial.println("Comandos MQTT: armar / desarmar");
   Serial.println("Zona 1 reed/botao no GPIO25.");
   Serial.println("Zona 2 IR no GPIO33.");
@@ -157,6 +159,8 @@ void loop() {
   }
 
   client.loop();
+
+  verificarBotaoSecreto();
 
   int alerta = digitalRead(PIN_ESP_ALERTA);
 
@@ -188,10 +192,35 @@ void loop() {
     }
   }
 
-  // Libera novo alerta quando soltar o botão de alerta
   if (alerta == HIGH) {
     alertaProcessado = false;
   }
+}
+
+void verificarBotaoSecreto() {
+  bool estadoAtual = digitalRead(PIN_BOTAO_SECRETO);
+
+  if (estadoAtual == LOW && ultimoEstadoBotaoSecreto == HIGH) {
+    unsigned long agora = millis();
+
+    if (agora - ultimoTempoBotaoSecreto > debounceBotaoSecreto) {
+      sistemaArmado = !sistemaArmado;
+
+      if (sistemaArmado) {
+        Serial.println("Sistema ARMADO pelo botao secreto.");
+        client.publish(topic_status, "armado");
+        client.publish(topic_mensagem, "Sistema armado pelo botao secreto");
+      } else {
+        Serial.println("Sistema DESARMADO pelo botao secreto.");
+        client.publish(topic_status, "desarmado");
+        client.publish(topic_mensagem, "Sistema desarmado pelo botao secreto");
+      }
+
+      ultimoTempoBotaoSecreto = agora;
+    }
+  }
+
+  ultimoEstadoBotaoSecreto = estadoAtual;
 }
 
 void callbackMQTT(char* topic, byte* payload, unsigned int length) {
@@ -285,19 +314,10 @@ void reconectarMQTT() {
 }
 
 int identificarZona() {
-  // Zona 1: reed/botão
   if (digitalRead(PIN_ZONA_1) == LOW) return 1;
-
-  // Zona 2: sensor IR
   if (digitalRead(PIN_ZONA_2) == LOW) return 2;
-
-  // Zona 3: PIR por leitura analógica
   if (zona3PIRViolada()) return 3;
-
-  // Zona 4: ultrassônico
   if (zona4UltrassomViolada()) return 4;
-
-  // Zona 5: botão
   if (digitalRead(PIN_ZONA_5) == LOW) return 5;
 
   return 0;
@@ -306,7 +326,6 @@ int identificarZona() {
 bool zona3PIRViolada() {
   long soma = 0;
 
-  // Faz média para reduzir ruído do ADC
   for (int i = 0; i < 10; i++) {
     soma += analogRead(PIN_ZONA_3);
     delay(2);
