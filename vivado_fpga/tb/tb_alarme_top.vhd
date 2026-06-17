@@ -7,6 +7,11 @@ end tb_alarme_top;
 architecture Behavioral of tb_alarme_top is
 
     component alarme_top
+        Generic (
+            CLK_FREQ_HZ         : integer;
+            TEMPO_CONTAGEM_S    : integer;
+            TEMPO_TIMEOUT_ESP_S : integer
+        );
         Port (
             clk        : in  STD_LOGIC;
             reset      : in  STD_LOGIC;
@@ -52,9 +57,20 @@ architecture Behavioral of tb_alarme_top is
     signal leds_zona  : STD_LOGIC_VECTOR(4 downto 0);
     signal display    : STD_LOGIC_VECTOR(6 downto 0);
 
+    -- Valores reduzidos so para a simulacao rodar rapido.
+    -- Em hardware real, a entidade usa os valores padrao (100 MHz / 10 s / 5 s).
+    constant CLK_FREQ_HZ_SIM         : integer := 10;  -- 10 ciclos = "1 segundo" simulado
+    constant TEMPO_CONTAGEM_S_SIM    : integer := 5;   -- 50 ciclos = 500 ns para confirmar
+    constant TEMPO_TIMEOUT_ESP_S_SIM : integer := 3;   -- 30 ciclos = 300 ns de timeout
+
 begin
 
     uut: alarme_top
+        Generic map (
+            CLK_FREQ_HZ         => CLK_FREQ_HZ_SIM,
+            TEMPO_CONTAGEM_S    => TEMPO_CONTAGEM_S_SIM,
+            TEMPO_TIMEOUT_ESP_S => TEMPO_TIMEOUT_ESP_S_SIM
+        )
         Port map (
             clk        => clk,
             reset      => reset,
@@ -78,7 +94,7 @@ begin
             display    => display
         );
 
-    -- Geração do clock
+    -- Geracao do clock (periodo 10 ns)
     clk_process : process
     begin
         while true loop
@@ -89,7 +105,7 @@ begin
         end loop;
     end process;
 
-    -- Estímulos de teste
+    -- Estimulos de teste
     stim_proc : process
     begin
 
@@ -100,19 +116,31 @@ begin
 
         wait for 20 ns;
 
-        -- Armar sistema
+        -- Arma o sistema
         botao_arm <= '1';
         wait for 30 ns;
 
-        -- Violação da Zona 3
+        -- ===== Cenario 1: falso-positivo =====
+        -- Zona 3 e violada por pouco tempo (200 ns), bem menos que os
+        -- 500 ns necessarios para confirmar (TEMPO_CONTAGEM_S_SIM=5 -> 50 ciclos).
+        -- Esperado: ARMADO -> CONTAGEM -> ARMADO (sem sirene, sem estrobo, sem esp_alerta).
         zona3 <= '1';
-        wait for 150 ns;
+        wait for 200 ns;
+        zona3 <= '0';
+        wait for 100 ns;
 
-        -- ESP32 não confirma envio
+        -- ===== Cenario 2: violacao confirmada =====
+        -- Zona 3 e violada e permanece ativa por mais tempo que o necessario
+        -- para confirmar (600 ns > 500 ns).
+        -- Esperado: ARMADO -> CONTAGEM -> DISPARO (sirene, estrobo e esp_alerta em '1').
+        zona3 <= '1';
+        wait for 600 ns;
+
+        -- ESP32 nao confirma o recebimento do alerta
         esp_ok <= '0';
-        wait for 40 ns;
+        wait for 350 ns; -- maior que o timeout (300 ns) -> RESET_ESP
 
-        -- Desarmar sistema
+        -- Desarma o sistema manualmente
         botao_arm <= '0';
         zona3 <= '0';
         esp_ok <= '1';
