@@ -7,23 +7,32 @@ create_clock -period 10.000 -name sys_clk_pin -waveform {0.000 5.000} [get_ports
 set_property PACKAGE_PIN U18 [get_ports reset]
 set_property IOSTANDARD LVCMOS33 [get_ports reset]
 
-## Entradas por switches
+## Botao de armar/desarmar - switch onboard (mantido)
 set_property PACKAGE_PIN V17 [get_ports botao_arm]
 set_property IOSTANDARD LVCMOS33 [get_ports botao_arm]
 
-set_property PACKAGE_PIN V16 [get_ports zona1]
+## Zonas 1 a 5 - migradas dos switches onboard para o PMOD JC,
+## porque agora recebem o espelho dos sensores reais vindo do ESP32
+## (antes eram switches de bancada so para testar a MEF sem sensores).
+
+## JC1 - Zona 1 (reed switch, via ESP32)
+set_property PACKAGE_PIN K17 [get_ports zona1]
 set_property IOSTANDARD LVCMOS33 [get_ports zona1]
 
-set_property PACKAGE_PIN W16 [get_ports zona2]
+## JC2 - Zona 2 (sensor IR, via ESP32)
+set_property PACKAGE_PIN M18 [get_ports zona2]
 set_property IOSTANDARD LVCMOS33 [get_ports zona2]
 
-set_property PACKAGE_PIN W17 [get_ports zona3]
+## JC3 - Zona 3 (PIR, via ESP32)
+set_property PACKAGE_PIN N17 [get_ports zona3]
 set_property IOSTANDARD LVCMOS33 [get_ports zona3]
 
-set_property PACKAGE_PIN W15 [get_ports zona4]
+## JC4 - Zona 4 (ultrassonico HC-SR04, via ESP32)
+set_property PACKAGE_PIN P18 [get_ports zona4]
 set_property IOSTANDARD LVCMOS33 [get_ports zona4]
 
-set_property PACKAGE_PIN V15 [get_ports zona5]
+## JC7 - Zona 5 (botao/reed adicional, via ESP32)
+set_property PACKAGE_PIN L17 [get_ports zona5]
 set_property IOSTANDARD LVCMOS33 [get_ports zona5]
 
 ## PMOD JA10 - esp_ok vindo do ESP32
@@ -41,7 +50,9 @@ set_property IOSTANDARD LVCMOS33 [get_ports estrobo]
 set_property PACKAGE_PIN J1 [get_ports esp_alerta]
 set_property IOSTANDARD LVCMOS33 [get_ports esp_alerta]
 
-set_property PACKAGE_PIN V13 [get_ports esp_reset]
+## PMOD JA2 - reset do ESP32 (watchdog). Antes estava no LED V13
+## e nunca chegava de fato no ESP32; agora vai por fio de verdade.
+set_property PACKAGE_PIN L2 [get_ports esp_reset]
 set_property IOSTANDARD LVCMOS33 [get_ports esp_reset]
 
 ## LEDs das zonas
