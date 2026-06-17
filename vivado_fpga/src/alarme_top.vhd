@@ -3,6 +3,16 @@ use IEEE.STD_LOGIC_1164.ALL;
 use IEEE.NUMERIC_STD.ALL;
 
 entity alarme_top is
+    Generic (
+        -- Frequencia do clock da placa (Basys 3 = 100 MHz por padrao)
+        CLK_FREQ_HZ         : integer := 100000000;
+
+        -- Tempo de confirmacao da violacao antes do disparo (reducao de falso-positivo)
+        TEMPO_CONTAGEM_S    : integer := 10;
+
+        -- Tempo de espera pela confirmacao (esp_ok) antes de resetar o ESP32
+        TEMPO_TIMEOUT_ESP_S : integer := 5
+    );
     Port (
         clk        : in  STD_LOGIC;
         reset      : in  STD_LOGIC;
@@ -29,17 +39,23 @@ end alarme_top;
 
 architecture Behavioral of alarme_top is
 
-    type estado_t is (DESARMADO, ARMADO, DISPARO, RESET_ESP);
+    -- Estado CONTAGEM restaurado: e a etapa responsavel pela reducao de
+    -- falso-positivo (uma violacao so e considerada real se permanecer
+    -- ativa por TEMPO_CONTAGEM_S segundos seguidos).
+    type estado_t is (DESARMADO, ARMADO, CONTAGEM, DISPARO, RESET_ESP);
     signal estado_atual : estado_t := DESARMADO;
 
     signal zonas        : STD_LOGIC_VECTOR(4 downto 0);
     signal zona_violada : STD_LOGIC;
     signal zona_memoria : STD_LOGIC_VECTOR(4 downto 0) := "00000";
 
-    -- Clock da Basys 3 = 100 MHz
-    -- 100.000.000 ciclos = 1 segundo
-    signal contador_clk      : integer range 0 to 100000000 := 0;
-    signal contador_segundos : integer range 0 to 5 := 0;
+    -- Contador de ciclos de clock (0 a CLK_FREQ_HZ-1 = 1 segundo real)
+    signal contador_clk      : integer range 0 to CLK_FREQ_HZ - 1 := 0;
+
+    -- Contador de segundos. Faixa fixa com margem confortavel para os
+    -- dois tempos usados (CONTAGEM e TIMEOUT_ESP); ajuste se precisar
+    -- de tempos maiores que 1023 segundos.
+    signal contador_segundos : integer range 0 to 1023 := 0;
 
     signal esp_ok_recebido : STD_LOGIC := '0';
 
@@ -88,11 +104,45 @@ begin
                         zona_memoria <= "00000";
 
                     elsif zona_violada = '1' then
+                        -- Memoriza a zona no instante em que a violacao comecou
+                        -- e passa a confirmar antes de disparar.
                         zona_memoria <= zonas;
-                        estado_atual <= DISPARO;
+                        estado_atual <= CONTAGEM;
 
                     else
                         estado_atual <= ARMADO;
+                    end if;
+
+
+                when CONTAGEM =>
+                    if botao_arm = '0' then
+                        estado_atual <= DESARMADO;
+                        zona_memoria <= "00000";
+
+                        contador_clk <= 0;
+                        contador_segundos <= 0;
+
+                    elsif zona_violada = '0' then
+                        -- A violacao nao se manteve: trata como falso-positivo
+                        -- e volta a vigiar sem acionar sirene/estrobo/ESP32.
+                        estado_atual <= ARMADO;
+                        zona_memoria <= "00000";
+
+                        contador_clk <= 0;
+                        contador_segundos <= 0;
+
+                    else
+                        if contador_segundos >= TEMPO_CONTAGEM_S then
+                            estado_atual <= DISPARO;
+                            contador_clk <= 0;
+                            contador_segundos <= 0;
+
+                        elsif contador_clk = CLK_FREQ_HZ - 1 then
+                            contador_clk <= 0;
+                            contador_segundos <= contador_segundos + 1;
+                        else
+                            contador_clk <= contador_clk + 1;
+                        end if;
                     end if;
 
 
@@ -106,22 +156,22 @@ begin
                         esp_ok_recebido <= '0';
 
                     else
-                        -- Se o ESP32 respondeu, registra confirmação
+                        -- Se o ESP32 respondeu, registra confirmacao
                         if esp_ok = '1' then
                             esp_ok_recebido <= '1';
                             contador_clk <= 0;
                             contador_segundos <= 0;
 
-                        -- Se ainda não recebeu esp_ok, conta até 5 segundos
+                        -- Se ainda nao recebeu esp_ok, conta o timeout configurado
                         elsif esp_ok_recebido = '0' then
 
-                            if contador_segundos >= 5 then
+                            if contador_segundos >= TEMPO_TIMEOUT_ESP_S then
                                 estado_atual <= RESET_ESP;
                                 contador_clk <= 0;
                                 contador_segundos <= 0;
 
                             else
-                                if contador_clk = 99999999 then
+                                if contador_clk = CLK_FREQ_HZ - 1 then
                                     contador_clk <= 0;
                                     contador_segundos <= contador_segundos + 1;
                                 else
@@ -173,6 +223,14 @@ begin
                 display <= "0001000"; -- A
 
 
+            when CONTAGEM =>
+                -- Ainda nao dispara: so mostra qual zona esta sendo confirmada.
+                -- Sirene, estrobo e esp_alerta continuam em '0' propositalmente,
+                -- isso e o que evita o falso-positivo virar alarme de fato.
+                display   <= "1000110"; -- C
+                leds_zona <= zona_memoria;
+
+
             when DISPARO =>
                 display    <= "1000001"; -- U
                 sirene     <= '1';
@@ -183,7 +241,7 @@ begin
                 esp_zonas  <= zona_memoria;
                 leds_zona  <= zona_memoria;
 
-                -- Indicação visual de esp_ok recebido
+                -- Indicacao visual de esp_ok recebido
                 -- Acende leds_zona[4] se o ESP32 confirmou
                 if esp_ok_recebido = '1' then
                     leds_zona(4) <= '1';
