@@ -6,6 +6,8 @@
   <title>Dashboard - Alarme FPGA</title>
 
   <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#0d1b2a">
 
@@ -308,6 +310,14 @@
       <h2>Histórico de Eventos</h2>
       <div id="historico">Nenhum evento registrado.</div>
     </div>
+
+    <div class="card" style="grid-column: 1 / -1;">
+      <h2>Estatísticas por Zona</h2>
+      <div id="estatisticasZonas">Clique em "Atualizar estatísticas" para carregar.</div>
+      <button onclick="atualizarEstatisticasPorZona()" style="margin-top: 10px; padding: 8px 14px; border-radius: 8px; border: none; cursor: pointer; font-weight: bold; background: #0d1b2a; color: white;">
+        Atualizar estatísticas
+      </button>
+    </div>
   </div>
 
   <div class="rodape">
@@ -315,7 +325,109 @@
   </div>
 
   <script>
-    // ### PREENCHA AQUI ### com os dados do mesmo cluster usado no ESP32
+    // ### PREENCHA AQUI ### com a config do SEU projeto Firebase
+    // (console.firebase.google.com -> criar projeto -> Firestore Database
+    // -> modo de produção -> Configurações do projeto -> "Seus apps" -> Web)
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "SEU_PROJETO.firebaseapp.com",
+      projectId: "SEU_PROJETO",
+      storageBucket: "SEU_PROJETO.appspot.com",
+      messagingSenderId: "SEU_SENDER_ID",
+      appId: "SEU_APP_ID"
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    // ### PREENCHA AQUI ### com o nome dos locais de cada zona, se quiser
+    // trocar (usado so para exibir nas estatisticas)
+    const nomesZonas = {
+      "1": "Porta principal",
+      "2": "Janela lateral",
+      "3": "Area interna",
+      "4": "Area externa",
+      "5": "Area critica"
+    };
+
+    // ===== Persistencia dos disparos no Firestore =====
+
+    function salvarDisparoFirestore(zona, mensagem) {
+      db.collection("disparos").add({
+        zona: zona || "0",
+        mensagem: mensagem,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
+      }).catch(function (erro) {
+        console.error("Erro ao salvar disparo no Firestore:", erro);
+        adicionarHistorico("Erro ao salvar disparo no banco de dados.");
+      });
+
+      db.collection("estatisticas").doc("contadores").set({
+        disparos: firebase.firestore.FieldValue.increment(1)
+      }, { merge: true }).catch(function (erro) {
+        console.error("Erro ao incrementar contador no Firestore:", erro);
+      });
+    }
+
+    // Recarrega contador e historico persistidos quando a pagina abre,
+    // em vez de comecar do zero a cada vez que alguem da F5.
+    function carregarDadosPersistidos() {
+      db.collection("estatisticas").doc("contadores").get().then(function (doc) {
+        if (doc.exists) {
+          contadorDisparos = doc.data().disparos || 0;
+          document.getElementById("contador").innerText = contadorDisparos;
+        }
+      }).catch(function (erro) {
+        console.error("Erro ao ler contador do Firestore:", erro);
+      });
+
+      db.collection("disparos").orderBy("timestamp", "desc").limit(20).get()
+        .then(function (snapshot) {
+          // Snapshot vem do mais novo para o mais antigo. adicionarHistorico
+          // sempre poe no topo, entao processamos do mais antigo pro mais
+          // novo aqui, pra o mais novo terminar visualmente no topo.
+          const docs = snapshot.docs.slice().reverse();
+          docs.forEach(function (doc) {
+            const dados = doc.data();
+            const quando = dados.timestamp ? dados.timestamp.toDate() : new Date();
+            adicionarHistorico(dados.mensagem, quando);
+          });
+        }).catch(function (erro) {
+          console.error("Erro ao ler historico do Firestore:", erro);
+        });
+    }
+
+    // Estatistica simples por zona, usada no botao "Atualizar estatisticas"
+    function atualizarEstatisticasPorZona() {
+      const el = document.getElementById("estatisticasZonas");
+      if (!el) return;
+
+      el.innerText = "Carregando...";
+
+      db.collection("disparos").get().then(function (snapshot) {
+        const contagem = {};
+        snapshot.forEach(function (doc) {
+          const z = doc.data().zona || "0";
+          contagem[z] = (contagem[z] || 0) + 1;
+        });
+
+        let linhas = [];
+        Object.keys(contagem).sort().forEach(function (zona) {
+          const nome = nomesZonas[zona] || ("Zona " + zona);
+          linhas.push(nome + ": " + contagem[zona] + " disparo(s)");
+        });
+
+        el.innerText = linhas.length > 0 ? linhas.join(" | ") : "Sem disparos registrados ainda.";
+      }).catch(function (erro) {
+        console.error("Erro ao calcular estatisticas:", erro);
+        el.innerText = "Erro ao calcular estatisticas.";
+      });
+    }
+
+    carregarDadosPersistidos();
+  </script>
+
+  <script>
     const broker = "wss://SEU-CLUSTER.s1.eu.hivemq.cloud:8884/mqtt";
     const mqttUser = "SEU_USUARIO_MQTT";
     const mqttPass = "SUA_SENHA_MQTT";
@@ -397,6 +509,10 @@
         ultimaMensagem = valor;
         document.getElementById("mensagem").innerText = valor;
         adicionarHistorico(valor);
+
+        if (ultimoStatus.toLowerCase() === "disparo") {
+          salvarDisparoFirestore(ultimaZona, valor);
+        }
       }
 
       if (topic === topicEspOk) {
@@ -503,9 +619,9 @@
       };
     }
 
-    function adicionarHistorico(mensagem) {
+    function adicionarHistorico(mensagem, dataHoraObj) {
       const historico = document.getElementById("historico");
-      const dataHora = new Date().toLocaleString();
+      const dataHora = (dataHoraObj || new Date()).toLocaleString();
 
       if (historico.innerText === "Nenhum evento registrado.") {
         historico.innerHTML = "";
@@ -519,9 +635,10 @@
     }
 
     function limparHistorico() {
+      // So limpa a lista exibida na tela. O contador e o historico
+      // persistido no Firestore continuam intactos, porque representam
+      // o uso real do sistema para fins estatisticos.
       document.getElementById("historico").innerText = "Nenhum evento registrado.";
-      contadorDisparos = 0;
-      document.getElementById("contador").innerText = "0";
     }
   </script>
 
