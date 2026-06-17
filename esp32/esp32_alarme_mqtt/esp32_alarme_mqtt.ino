@@ -62,10 +62,10 @@ const char* password = "batata123";
 // ===== CONFIGURACOES MQTT (broker privado, TLS, com autenticacao) =====
 // ### PREENCHA AQUI ### com os dados do SEU cluster gratuito na HiveMQ Cloud
 // (console.hivemq.cloud -> Create cluster -> Access Management -> Add credentials)
-const char* mqtt_server = ec05553814694e298758239a3dad8864.s1.eu.hivemq.cloud; // host do seu cluster
+const char* mqtt_server = "ec05553814694e298758239a3dad8864.s1.eu.hivemq.cloud"; // host do seu cluster
 const int   mqtt_port   = 8883;                              // 8883 = MQTT com TLS
-const char* mqtt_user   = Polegato;
-const char* mqtt_pass   = Polegato1;
+const char* mqtt_user   = "Polegato";
+const char* mqtt_pass   = "Polegato1";
 
 // Topicos MQTT
 const char* topic_status   = "mackenzie/alarme/status";
