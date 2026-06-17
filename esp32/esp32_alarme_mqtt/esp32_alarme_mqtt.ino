@@ -60,8 +60,7 @@ const char* ssid = "GabrielEsp";
 const char* password = "batata123";
 
 // ===== CONFIGURACOES MQTT (broker privado, TLS, com autenticacao) =====
-// ### PREENCHA AQUI ### com os dados do SEU cluster gratuito na HiveMQ Cloud
-// (console.hivemq.cloud -> Create cluster -> Access Management -> Add credentials)
+// Broker privado HiveMQ Cloud (cluster do projeto)
 const char* mqtt_server = "ec05553814694e298758239a3dad8864.s1.eu.hivemq.cloud"; // host do seu cluster
 const int   mqtt_port   = 8883;                              // 8883 = MQTT com TLS
 const char* mqtt_user   = "Polegato";
@@ -75,10 +74,8 @@ const char* topic_esp_ok   = "mackenzie/alarme/esp_ok";
 const char* topic_comando  = "mackenzie/alarme/comando";
 
 // ===== CONFIGURACOES DO ALERTA POR WHATSAPP (CallMeBot, gratuito) =====
-// ### PREENCHA AQUI ### depois de cadastrar seu numero no CallMeBot
-// (mande "I allow callmebot to send me messages" pelo WhatsApp para
-// +34 644 59 71 67 e ele responde com o apikey)
-const char* whatsapp_numero  = "5511991122803"; // com codigo do pais, sem + nem espaco
+// Alerta por WhatsApp via CallMeBot
+const char* whatsapp_numero  = "5511991122803"; // adicionei o 55 do Brasil na frente, confirma se está certo
 const char* whatsapp_apikey  = "3811681";
 
 WiFiClientSecure espClient;
