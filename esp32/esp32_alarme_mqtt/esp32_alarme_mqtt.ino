@@ -54,6 +54,16 @@
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 #include <PubSubClient.h>
+#include <esp_task_wdt.h>
+
+// ===== WATCHDOG POR SOFTWARE =====
+// Reinicia o ESP32 sozinho se o loop principal travar por qualquer
+// motivo (ex: Wi-Fi pendurado, chamada de rede sem timeout, sensor
+// travando o codigo). Isso e independente do watchdog que ja existe
+// no sentido FPGA -> ESP32 (esp_reset), que so cobre o caso de o
+// ESP32 nao confirmar esp_ok apos um disparo. Este aqui cobre
+// qualquer travamento, mesmo fora de um disparo.
+#define WDT_TIMEOUT_S 15
 
 // ===== CONFIGURACOES DO WI-FI =====
 const char* ssid = "GabrielEsp";
@@ -195,12 +205,20 @@ void setup() {
   client.setServer(mqtt_server, mqtt_port);
   client.setCallback(callbackMQTT);
 
+  // Inicializa o watchdog: se o loop() nao "alimentar" o watchdog
+  // (esp_task_wdt_reset) dentro de WDT_TIMEOUT_S segundos, o ESP32
+  // reinicia sozinho. Protege contra travamentos de software.
+  esp_task_wdt_init(WDT_TIMEOUT_S, true); // true = reinicia o ESP32 ao estourar
+  esp_task_wdt_add(NULL);                 // adiciona a task do loop() ao watchdog
+
   Serial.println("ESP32 iniciado.");
+  Serial.println("Watchdog de software ativo (timeout " + String(WDT_TIMEOUT_S) + "s).");
   Serial.println("Espelhando sensores para a FPGA via PMOD JC.");
   Serial.println("Lendo decisao da FPGA via PMOD JB (esp_zonas) e JA1 (esp_alerta).");
 }
 
 void loop() {
+  esp_task_wdt_reset(); // alimenta o watchdog a cada volta do loop
   if (!client.connected()) {
     reconectarMQTT();
   }
@@ -284,9 +302,14 @@ void callbackMQTT(char* topic, byte* payload, unsigned int length) {
 }
 
 void acionarContramedidas() {
-  Serial.println("Sirene e estrobo acionados.");
+  Serial.println("Sirene, estrobo e cerca acionados. Aguardando desarme pela FPGA.");
 
-  for (int i = 0; i < 8; i++) {
+  // Mantém tudo ligado enquanto a FPGA mantiver esp_alerta em HIGH.
+  // Quando o operador desligar SW0 na Basys3, a FPGA baixa esp_alerta
+  // e o loop para, desligando todos os atuadores.
+  while (digitalRead(PIN_ESP_ALERTA) == HIGH) {
+    esp_task_wdt_reset(); // alimenta o watchdog mesmo durante o alarme
+
     digitalWrite(PIN_ESTROBO, HIGH);
     ledcWriteTone(PIN_BUZZER, 2500);
     delay(150);
@@ -298,6 +321,7 @@ void acionarContramedidas() {
 
   ledcWriteTone(PIN_BUZZER, 0);
   digitalWrite(PIN_ESTROBO, LOW);
+  Serial.println("Sistema desarmado. Atuadores desligados.");
 }
 
 void conectarWiFi() {

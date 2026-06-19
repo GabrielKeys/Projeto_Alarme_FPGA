@@ -1,0 +1,93 @@
+ROTEIRO DO VÍDEO DEMONSTRATIVO
+
+1. Apresentação inicial
+
+Apresentar o nome do projeto:
+Sistema Embarcado de Alarme Perimétrico com FPGA
+
+Explicar brevemente que o sistema monitora cinco zonas, identifica a zona violada, aciona contramedidas e envia alerta ao usuário por meio do ESP32, MQTT e dashboard.
+
+2. Arquitetura do sistema
+
+Mostrar o fluxo geral:
+
+Sensores → FPGA Basys 3 → ESP32 → MQTT → Dashboard/Nuvem → Usuário
+
+Explicar que a FPGA executa a lógica principal do alarme, o ESP32 realiza a comunicação IoT e o dashboard apresenta as informações ao usuário.
+
+3. Central FPGA
+
+Mostrar o projeto no Vivado e apresentar o arquivo alarme_top.vhd.
+
+Explicar que a central foi implementada com uma Máquina de Estados Finita composta pelos estados:
+
+- DESARMADO
+- ARMADO
+- CONTAGEM
+- DISPARO
+- RESET_ESP
+
+Destacar que a FPGA monitora as zonas, identifica a violação, memoriza a zona violada e controla as saídas do sistema.
+
+4. Simulação no Vivado
+
+Mostrar o testbench tb_alarme_top.vhd e a simulação comportamental.
+
+Destacar:
+- Reset inicial
+- Sistema armado
+- Violação de uma zona
+- Contagem antes do disparo
+- Acionamento de sirene e estrobo
+- Envio do sinal esp_alerta
+- Envio da zona violada por esp_zonas
+
+5. Fluxo de implementação no Vivado
+
+Mostrar que foram realizadas as etapas:
+
+- Síntese
+- Implementação
+- Geração do bitstream
+
+Explicar que o arquivo .xdc associa os sinais do projeto aos pinos físicos da Basys 3.
+
+6. ESP32 e MQTT
+
+Mostrar o código esp32_alarme_mqtt.ino.
+
+Explicar que o ESP32 recebe os sinais da FPGA, identifica a zona violada, conecta-se à rede Wi-Fi e publica as informações por MQTT.
+
+Tópicos utilizados:
+- mackenzie/alarme/status
+- mackenzie/alarme/zona
+- mackenzie/alarme/mensagem
+- mackenzie/alarme/esp_ok
+
+7. Dashboard
+
+Abrir o dashboard_mqtt.html.
+
+Mostrar:
+- Status do sistema
+- Zona violada
+- Mensagem de alerta
+- Confirmação do ESP32
+- Contador de disparos
+- Histórico de eventos
+
+8. Protótipo físico
+
+Mostrar a maquete montada, com os sensores, atuadores, FPGA e ESP32 organizados.
+
+Demonstrar:
+- Sistema sendo armado
+- Violação de uma zona
+- Indicação da zona no hardware
+- Acionamento das contramedidas
+- Atualização do dashboard
+- Registro do evento
+
+9. Conclusão
+
+Concluir explicando que o projeto integra hardware em FPGA, IoT com ESP32, comunicação MQTT, dashboard em nuvem e protótipo físico, atendendo ao objetivo de criar um sistema embarcado perimétrico de detecção e comunicação de violações.

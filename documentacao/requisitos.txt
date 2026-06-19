@@ -1,0 +1,65 @@
+REQUISITOS DO SISTEMA
+
+1. Requisitos Funcionais
+
+RF01 - O sistema deve possuir uma central de alarme implementada em FPGA Basys 3.
+
+RF02 - O sistema deve monitorar cinco zonas de segurança.
+
+RF03 - O sistema deve identificar qual zona foi violada.
+
+RF04 - O sistema deve possuir estados de funcionamento: DESARMADO, ARMADO, CONTAGEM, DISPARO e RESET_ESP.
+
+RF05 - O sistema deve permitir armar e desarmar o alarme por meio de um botão.
+
+RF06 - Quando armado, o sistema deve monitorar continuamente as zonas.
+
+RF07 - Quando uma zona for violada, o sistema deve iniciar uma contagem antes do disparo.
+
+RF08 - Após a contagem, o sistema deve acionar a sirene.
+
+RF09 - Após a contagem, o sistema deve acionar a luz estroboscópica.
+
+RF10 - O sistema deve indicar visualmente a zona violada por LEDs.
+
+RF11 - O display deve indicar “d” quando o sistema estiver desarmado.
+
+RF12 - O display deve indicar “A” quando o sistema estiver armado.
+
+RF13 - O display deve indicar “U” quando o sistema estiver disparando.
+
+RF14 - O FPGA deve enviar um sinal de alerta para o ESP32.
+
+RF15 - O ESP32 deve enviar o alerta para a nuvem por MQTT.
+
+RF16 - O alerta ao usuário deve informar qual zona foi violada.
+
+RF17 - O dashboard deve exibir o status do alarme.
+
+RF18 - O dashboard deve exibir a zona violada.
+
+RF19 - O sistema deve registrar histórico dos disparos.
+
+RF20 - O FPGA deve resetar o ESP32 caso ele não confirme o envio do alerta.
+
+2. Requisitos Não Funcionais
+
+RNF01 - O sistema deve ser organizado em uma maquete física.
+
+RNF02 - A fiação deve ser organizada e fixada de forma segura.
+
+RNF03 - A FPGA deve ser removível da maquete.
+
+RNF04 - A comunicação IoT deve utilizar MQTT.
+
+RNF05 - O sistema deve ter documentação completa no GitHub.
+
+RNF06 - O projeto deve possuir vídeo demonstrativo publicado no YouTube.
+
+RNF07 - O sistema deve ser modular, separando FPGA, ESP32, nuvem e documentação.
+
+RNF08 - A lógica da FPGA deve ser validada por simulação no Vivado antes do teste físico.
+
+RNF09 - O protótipo deve ser funcional na apresentação final.
+
+RNF10 - A interface do usuário deve ser acessível por dashboard ou aplicação mobile.

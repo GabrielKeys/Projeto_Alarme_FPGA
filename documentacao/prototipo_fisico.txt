@@ -1,0 +1,40 @@
+PLANEJAMENTO DO PROTÓTIPO FÍSICO
+
+O protótipo físico será montado em uma maquete, representando um ambiente monitorado por alarme perimétrico. A maquete deverá permitir a instalação organizada dos sensores, atuadores e da comunicação com a FPGA e o ESP32.
+
+Estrutura da maquete:
+- Base em MDF ou madeira
+- Representação de porta, janela, área interna, área externa e corredor
+- Sensores fixados em posições visíveis e funcionais
+- Fiação organizada e identificada
+- Conexão removível para a placa FPGA Basys 3
+- ESP32 instalado em área separada da fiação de potência
+
+Zonas físicas previstas:
+- Zona 1: porta principal
+- Zona 2: janela lateral
+- Zona 3: área interna
+- Zona 4: área externa
+- Zona 5: área crítica/corredor
+
+Sensores previstos:
+- Reed switch na porta
+- Sensor IR na janela
+- Sensor PIR na área interna
+- Sensor ultrassônico HC-SR04 na área externa
+- Botão ou reed switch adicional na área crítica
+
+Atuadores previstos:
+- Sirene/buzzer
+- Luz estroboscópica
+- LEDs indicadores das zonas
+
+Cuidados com fiação:
+- Evitar fios soltos
+- Identificar cada fio por função
+- Usar cabos organizados, como UTP ou jumpers fixados
+- Separar sinais digitais de alimentação dos atuadores
+- Permitir conexão e desconexão segura da Basys 3
+
+Observação:
+A montagem física será realizada apenas após a validação da lógica em simulação, reduzindo a chance de erros durante a integração com hardware real.
