@@ -80,23 +80,23 @@ Fluxo geral:
 
 Sensores / Zonas
 
-&#x20;       ↓
+\&#x20;       ↓
 
 FPGA Basys 3
 
-&#x20;       ↓
+\&#x20;       ↓
 
 MEF + tempo programável
 
-&#x20;       ↓
+\&#x20;       ↓
 
 ESP32
 
-&#x20;       ↓
+\&#x20;       ↓
 
 MQTT / Dashboard / WhatsApp / SMS
 
-&#x20;       ↓
+\&#x20;       ↓
 
 Usuário
 
@@ -148,7 +148,7 @@ A central FPGA foi implementada em VHDL com uma Máquina de Estados Finita compo
 
 \* `DISPARO`
 
-\* `RESET\_ESP`
+\* `RESET\\\_ESP`
 
 
 
@@ -164,7 +164,7 @@ A central FPGA foi implementada em VHDL com uma Máquina de Estados Finita compo
 
 \* \*\*DISPARO:\*\* a FPGA aciona as saídas de alerta, envia a zona ao ESP32 e o display mostra `U`.
 
-\* \*\*RESET\_ESP:\*\* estado de supervisão/watchdog caso o ESP32 não retorne `esp\_ok`.
+\* \*\*RESET\_ESP:\*\* estado de supervisão/watchdog caso o ESP32 não retorne `esp\\\_ok`.
 
 
 
@@ -250,9 +250,9 @@ Caso o valor configurado ultrapasse 120, o VHDL limita automaticamente para 120 
 
 \* Comunicação entre FPGA e ESP32.
 
-\* Envio da zona violada ao ESP32 por meio de `esp\_zonas`.
+\* Envio da zona violada ao ESP32 por meio de `esp\\\_zonas`.
 
-\* Retorno `esp\_ok` do ESP32 para a FPGA.
+\* Retorno `esp\\\_ok` do ESP32 para a FPGA.
 
 \* Comunicação MQTT com dashboard/app.
 
@@ -286,25 +286,25 @@ A comunicação entre a Basys 3 e o ESP32 é feita por sinais digitais em lógic
 
 | -------------- | ------- | ------------------- |
 
-| `esp\_alerta`   | JA1     | GPIO26              |
+| `esp\\\_alerta`   | JA1     | GPIO26              |
 
-| `esp\_zonas\[0]` | JB1     | GPIO correspondente |
+| `esp\\\_zonas\\\[0]` | JB1     | GPIO correspondente |
 
-| `esp\_zonas\[1]` | JB2     | GPIO correspondente |
+| `esp\\\_zonas\\\[1]` | JB2     | GPIO correspondente |
 
-| `esp\_zonas\[2]` | JB3     | GPIO correspondente |
+| `esp\\\_zonas\\\[2]` | JB3     | GPIO correspondente |
 
-| `esp\_zonas\[3]` | JB4     | GPIO correspondente |
+| `esp\\\_zonas\\\[3]` | JB4     | GPIO correspondente |
 
-| `esp\_zonas\[4]` | JB7     | GPIO correspondente |
+| `esp\\\_zonas\\\[4]` | JB7     | GPIO correspondente |
 
-| `esp\_ok`       | JA10    | GPIO correspondente |
+| `esp\\\_ok`       | JA10    | GPIO correspondente |
 
 | GND comum      | GND     | GND                 |
 
 
 
-A FPGA é responsável por confirmar o disparo e informar ao ESP32 qual zona foi violada. O ESP32 retorna `esp\_ok` indicando que recebeu e processou o alerta.
+A FPGA é responsável por confirmar o disparo e informar ao ESP32 qual zona foi violada. O ESP32 retorna `esp\\\_ok` indicando que recebeu e processou o alerta.
 
 
 
@@ -324,9 +324,9 @@ Suas funções principais são:
 
 
 
-\* Receber `esp\_alerta` da FPGA.
+\* Receber `esp\\\_alerta` da FPGA.
 
-\* Ler a zona confirmada por `esp\_zonas`.
+\* Ler a zona confirmada por `esp\\\_zonas`.
 
 \* Publicar informações no broker MQTT.
 
@@ -338,7 +338,7 @@ Suas funções principais são:
 
 \* Acionar sirene/buzzer auxiliar.
 
-\* Retornar `esp\_ok` para a FPGA.
+\* Retornar `esp\\\_ok` para a FPGA.
 
 
 
@@ -378,7 +378,7 @@ O ESP32 publica e recebe mensagens MQTT nos seguintes tópicos:
 
 | `mackenzie/alarme/mensagem` | Mensagem de alerta   |
 
-| `mackenzie/alarme/esp\_ok`   | Confirmação do ESP32 |
+| `mackenzie/alarme/esp\\\_ok`   | Confirmação do ESP32 |
 
 | `mackenzie/alarme/comando`  | Comandos remotos     |
 
@@ -502,7 +502,7 @@ Quando a FPGA confirma o disparo após o estado `CONTAGEM`, o ESP32 monta uma UR
 
 ```text
 
-https://api.callmebot.com/whatsapp.php?phone=NUMERO\_CADASTRADO\&text=ALERTA: Zona X violada\&apikey=CHAVE\_API
+https://api.callmebot.com/whatsapp.php?phone=NUMERO\\\_CADASTRADO\\\&text=ALERTA: Zona X violada\\\&apikey=CHAVE\\\_API
 
 ```
 
@@ -654,27 +654,27 @@ Foram adotados os seguintes cuidados:
 
 ```text
 
-Projeto\_Alarme\_FPGA/
+Projeto\\\_Alarme\\\_FPGA/
 
-├── vivado\_fpga/
+├── vivado\\\_fpga/
 
 │   ├── src/
 
-│   │   └── alarme\_top.vhd
+│   │   └── alarme\\\_top.vhd
 
 │   ├── tb/
 
-│   │   └── tb\_alarme\_top.vhd
+│   │   └── tb\\\_alarme\\\_top.vhd
 
 │   └── constraints/
 
-│       └── alarme\_basys3.xdc
+│       └── alarme\\\_basys3.xdc
 
 ├── esp32/
 
-│   └── esp32\_alarme\_mqtt/
+│   └── esp32\\\_alarme\\\_mqtt/
 
-│       └── esp32\_alarme\_mqtt.ino
+│       └── esp32\\\_alarme\\\_mqtt.ino
 
 ├── nuvem/
 
@@ -728,7 +728,7 @@ Projeto\_Alarme\_FPGA/
 
 \* \[x] Arquivo de constraints da Basys 3.
 
-\* \[x] Envio da zona violada para o ESP32 por `esp\_zonas`.
+\* \[x] Envio da zona violada para o ESP32 por `esp\\\_zonas`.
 
 \* \[x] Memorização da zona violada.
 
@@ -784,7 +784,7 @@ Durante o teste, uma zona foi violada, o vetor de zonas foi memorizado e o siste
 
 
 
-Também foi validado o sinal `esp\_zonas`, que envia ao ESP32 o vetor da zona violada, permitindo que a comunicação com a nuvem informe exatamente qual região foi acionada.
+Também foi validado o sinal `esp\\\_zonas`, que envia ao ESP32 o vetor da zona violada, permitindo que a comunicação com a nuvem informe exatamente qual região foi acionada.
 
 
 
@@ -832,7 +832,7 @@ Quando uma zona é violada, o sistema não dispara imediatamente. Primeiro, agua
 
 
 
-Além disso, a zona violada é memorizada no sinal `zona\_memoria`, garantindo que o evento correto seja mantido durante o disparo.
+Além disso, a zona violada é memorizada no sinal `zona\\\_memoria`, garantindo que o evento correto seja mantido durante o disparo.
 
 
 
@@ -938,48 +938,6 @@ documentacao/Relatório Projeto.docx
 
 
 
-\## Observação sobre Credenciais
-
-
-
-As credenciais reais foram removidas ou devem ser substituídas por placeholders antes de qualquer publicação.
-
-
-
-Não devem ser enviados ao GitHub:
-
-
-
-\* Senhas de Wi-Fi.
-
-\* Usuários e senhas MQTT.
-
-\* Tokens Twilio.
-
-\* API keys do CallMeBot.
-
-\* Números de telefone completos.
-
-\* Chaves privadas ou credenciais de serviços externos.
-
-
-
-Exemplo de placeholder:
-
-
-
-```cpp
-
-const char\* mqtt\_user = "COLOQUE\_USUARIO\_AQUI";
-
-const char\* mqtt\_pass = "COLOQUE\_SENHA\_AQUI";
-
-const char\* whatsapp\_apikey = "COLOQUE\_APIKEY\_AQUI";
-
-```
-
-
-
 \---
 
 
@@ -989,6 +947,4 @@ const char\* whatsapp\_apikey = "COLOQUE\_APIKEY\_AQUI";
 
 
 FPGA, Sistemas Embarcados, Embedded Systems, Basys 3, Artix-7, VHDL, IoT, MQTT, ESP32, Dashboard, PWA, WhatsApp, SMS, CallMeBot, Twilio, Mackenzie.
-
-
 
